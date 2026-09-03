@@ -12,7 +12,6 @@ import os
 import re
 import secrets
 import sys
-import threading
 import time
 import traceback
 from datetime import date, datetime
@@ -33,7 +32,6 @@ except ImportError:  # pragma: no cover - startup guard
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = PROJECT_ROOT / "web"
-DB_SCHEMA_FILE = PROJECT_ROOT / "db" / "performance_configuration.sql"
 ENV_FILE = PROJECT_ROOT / ".env"
 IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -62,35 +60,6 @@ def require_identifier(value: str, fallback: str) -> str:
     if not IDENTIFIER_RE.match(text):
         raise ValueError(f"非法数据库标识符: {text}")
     return text
-
-
-def split_sql_statements(sql: str) -> List[str]:
-    def has_sql_body(statement: str) -> bool:
-        lines = [line for line in statement.splitlines() if not line.strip().startswith("--")]
-        return bool("\n".join(lines).strip())
-
-    statements: List[str] = []
-    start = 0
-    in_quote = False
-    index = 0
-    while index < len(sql):
-        char = sql[index]
-        if char == "'":
-            if in_quote and index + 1 < len(sql) and sql[index + 1] == "'":
-                index += 2
-                continue
-            in_quote = not in_quote
-        elif char == ";" and not in_quote:
-            statement = sql[start:index].strip()
-            if statement and has_sql_body(statement):
-                statements.append(statement)
-            start = index + 1
-        index += 1
-
-    statement = sql[start:].strip()
-    if statement and has_sql_body(statement):
-        statements.append(statement)
-    return statements
 
 
 def parse_json_body(handler: BaseHTTPRequestHandler) -> Any:
@@ -290,8 +259,6 @@ class PerformanceConfigurationRepository:
         )
         self.qualified_admin_table = f"{self.schema}.{self.admin_table}"
         self._pool: Optional[ThreadedConnectionPool] = None
-        self._table_ready = False
-        self._table_lock = threading.Lock()
 
     def pool(self) -> ThreadedConnectionPool:
         if self._pool is None:
@@ -310,57 +277,7 @@ class PerformanceConfigurationRepository:
     def with_connection(self) -> ConnectionContext:
         return ConnectionContext(self.pool())
 
-    def ensure_table(self) -> None:
-        if self._table_ready:
-            return
-
-        with self._table_lock:
-            if self._table_ready:
-                return
-            if self.schema_is_ready():
-                self._table_ready = True
-                return
-
-            schema_sql = self.target_schema_sql()
-            with self.with_connection() as conn:
-                with conn.cursor() as cursor:
-                    for statement in split_sql_statements(schema_sql):
-                        cursor.execute(statement)
-                        conn.commit()
-            self._table_ready = True
-
-    def schema_is_ready(self) -> bool:
-        sql = """
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_schema = %s
-          AND table_name = %s
-          AND column_name = 'periods'
-        LIMIT 1
-        """
-        if not self.fetch_all(sql, [self.schema, self.table]):
-            return False
-
-        missing_periods_sql = f"""
-        SELECT 1
-        FROM {self.qualified_table}
-        WHERE periods IS NULL
-        LIMIT 1
-        """
-        return not self.fetch_all(missing_periods_sql, [])
-
-    def target_schema_sql(self) -> str:
-        schema_sql = DB_SCHEMA_FILE.read_text(encoding="utf-8")
-        if self.schema == "bi" and self.table == "performance_configuration":
-            return schema_sql
-        return (
-            schema_sql
-            .replace("CREATE SCHEMA IF NOT EXISTS bi;", f"CREATE SCHEMA IF NOT EXISTS {self.schema};")
-            .replace("bi.performance_configuration", self.qualified_table)
-        )
-
     def list_configurations(self, payload: Dict[str, Any]) -> Dict[str, Any]:
-        self.ensure_table()
         config_month = normalize_month(first_value(payload, "configMonth", "config_month", default=""))
         del_flag = first_value(payload, "delFlag", "del_flag", default=0)
 
@@ -518,7 +435,6 @@ class PerformanceConfigurationRepository:
         return [sanitize_admin_row(row) for row in self.fetch_all(sql, params)]
 
     def batch_upsert(self, payload: Any, operator_id: Optional[int]) -> Dict[str, Any]:
-        self.ensure_table()
         rows = payload if isinstance(payload, list) else payload.get("rows") or payload.get("records") or payload.get("data") or []
         if not isinstance(rows, list):
             raise ValueError("保存参数必须是数组")
@@ -584,7 +500,6 @@ class PerformanceConfigurationRepository:
         }
 
     def logical_delete(self, payload: Dict[str, Any], operator_id: Optional[int]) -> Dict[str, int]:
-        self.ensure_table()
         record_id = as_int(first_value(payload, "id", default=None))
         config_month = normalize_month(first_value(payload, "configMonth", "config_month", default=""))
         module = str(first_value(payload, "module", default="")).strip()

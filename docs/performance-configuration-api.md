@@ -8,7 +8,7 @@
 bi.performance_configuration
 ```
 
-建表和升级脚本见 [performance_configuration.sql](/Users/cherry/Project/data_set/db/performance_configuration.sql)。通过 `data_set` 里的本地后端服务打开页面时，启动后会请求 `/data_set/performance/configuration/list` 读取这张表的数据。
+建表和升级脚本见 [performance_configuration.sql](/Users/cherry/Project/data_set/db/performance_configuration.sql)，需要时手工执行。后端服务运行时不会自动跑 DDL、字段检查或历史回填，只会请求 `/data_set/performance/configuration/list` 读取这张表的数据。
 
 字段命名按宿主项目风格保留，接口使用 camelCase，落库使用 snake_case。
 
@@ -48,7 +48,7 @@ WHERE '2026暑' = ANY(periods)
 WHERE periods && ARRAY['2026暑', '2026秋']
 ```
 
-已有表新增字段和回填逻辑已合并在 [performance_configuration.sql](/Users/cherry/Project/data_set/db/performance_configuration.sql)。
+已有表新增字段和回填逻辑已合并在 [performance_configuration.sql](/Users/cherry/Project/data_set/db/performance_configuration.sql)，只作为手工迁移脚本使用。
 
 ## 当前临时权限
 
