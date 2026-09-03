@@ -23,6 +23,7 @@ from urllib.parse import unquote, urlparse
 
 try:
     import psycopg2
+    from psycopg2.extras import execute_values
     from psycopg2.pool import ThreadedConnectionPool
 except ImportError:  # pragma: no cover - startup guard
     print("缺少 psycopg2，请先安装 psycopg2-binary。", file=sys.stderr)
@@ -465,6 +466,14 @@ class PerformanceConfigurationRepository:
         if not isinstance(rows, list):
             raise ValueError("保存参数必须是数组")
 
+        normalized_rows = [
+            self.normalize_configuration_row(raw, operator_id)
+            for raw in rows
+            if isinstance(raw, dict)
+        ]
+        if not normalized_rows:
+            return {"saved": 0}
+
         sql = f"""
         INSERT INTO {self.qualified_table} (
           create_by,
@@ -481,21 +490,7 @@ class PerformanceConfigurationRepository:
           config_type,
           del_flag
         )
-        VALUES (
-          %s,
-          %s,
-          COALESCE(%s, now()),
-          now(),
-          %s,
-          %s,
-          %s,
-          %s,
-          %s,
-          COALESCE(%s, ''),
-          COALESCE(%s, ''),
-          COALESCE(%s, ''),
-          COALESCE(%s, 0)
-        )
+        VALUES %s
         ON CONFLICT (config_month, module)
         DO UPDATE SET
           update_by = EXCLUDED.update_by,
@@ -509,19 +504,19 @@ class PerformanceConfigurationRepository:
           del_flag = EXCLUDED.del_flag
         """
 
-        count = 0
         with self.with_connection() as conn:
             with conn.cursor() as cursor:
-                for raw in rows:
-                    if not isinstance(raw, dict):
-                        continue
-                    cursor.execute(sql, self.normalize_configuration_row(raw, operator_id))
-                    count += 1
+                execute_values(
+                    cursor,
+                    sql,
+                    normalized_rows,
+                    template="(%s, %s, COALESCE(%s, now()), now(), %s, %s, %s, %s, %s, COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, 0))",
+                    page_size=len(normalized_rows),
+                )
             conn.commit()
 
         return {
-            "saved": count,
-            "records": self.list_configurations({"delFlag": 0})["records"],
+            "saved": len(normalized_rows),
         }
 
     def logical_delete(self, payload: Dict[str, Any], operator_id: Optional[int]) -> Dict[str, int]:

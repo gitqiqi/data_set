@@ -2015,13 +2015,13 @@
       render();
 
       if (!shouldSaveRemoteConfiguration()) {
-        showToast("已保存");
+        showToast("已保存当前月");
         return;
       }
 
       try {
-        await postJson(`${apiBase}/batchUpsert`, apiRows());
-        showToast("已保存到数据库");
+        await postJson(`${apiBase}/batchUpsert`, apiRows(activeMonth));
+        showToast("已保存当前月到数据库");
       } catch (error) {
         console.error(error);
         showToast("保存接口失败，请检查后端连接");
@@ -2035,8 +2035,11 @@
       return shouldLoadRemoteConfigurationRows();
     }
 
-    function apiRows() {
-      return records.map((record) => ({
+    function apiRows(month = null) {
+      const source = month
+        ? records.filter((record) => monthKey(record.configMonth) === monthKey(month))
+        : records;
+      return source.map((record) => ({
         id: backendId(record.id),
         createBy: record.createBy || null,
         updateBy: record.updateBy || null,
