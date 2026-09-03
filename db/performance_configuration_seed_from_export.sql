@@ -6,7 +6,7 @@ START TRANSACTION;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -28,6 +28,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-31',
   '2026秋',
   '2026暑',
+  ARRAY['2026秋', '2026暑']::text[],
   '常规',
   0
 )
@@ -40,12 +41,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -61,6 +63,7 @@ INSERT INTO bi.performance_configuration (
   '2026-06-23',
   '202026暑',
   '',
+  ARRAY['202026暑']::text[],
   '',
   0
 )
@@ -73,12 +76,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -94,6 +98,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-15',
   '2026暑',
   '',
+  ARRAY['2026暑']::text[],
   '',
   0
 )
@@ -106,12 +111,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -127,6 +133,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-31',
   '2026春,2026暑',
   '',
+  ARRAY['2026春', '2026暑']::text[],
   '',
   0
 )
@@ -139,12 +146,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -164,6 +172,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-31',
   '',
   '',
+  ARRAY[]::text[],
   '',
   0
 )
@@ -176,12 +185,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -196,6 +206,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-24',
   '2026暑,2026秋',
   '',
+  ARRAY['2026暑', '2026秋']::text[],
   '',
   0
 )
@@ -208,12 +219,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -226,6 +238,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-31',
   '202026暑',
   '',
+  ARRAY['202026暑']::text[],
   '',
   0
 )
@@ -238,12 +251,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -256,6 +270,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-31',
   '202026暑',
   '',
+  ARRAY['202026暑']::text[],
   '',
   0
 )
@@ -268,12 +283,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -286,6 +302,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-15',
   '202026暑',
   '',
+  ARRAY['202026暑']::text[],
   '',
   0
 )
@@ -298,12 +315,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -323,6 +341,7 @@ INSERT INTO bi.performance_configuration (
   NULL,
   '202026暑',
   '',
+  ARRAY['202026暑']::text[],
   '',
   0
 )
@@ -335,12 +354,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -353,6 +373,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-31',
   '2026暑',
   '',
+  ARRAY['2026暑']::text[],
   '',
   0
 )
@@ -365,12 +386,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -383,6 +405,7 @@ INSERT INTO bi.performance_configuration (
   '2026-03-31',
   '2026春',
   '2026春',
+  ARRAY['2026春']::text[],
   '常规',
   0
 )
@@ -395,12 +418,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -413,6 +437,7 @@ INSERT INTO bi.performance_configuration (
   '2026-03-22',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -425,12 +450,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -443,6 +469,7 @@ INSERT INTO bi.performance_configuration (
   '2026-03-31',
   '2026春,2026寒1期,2026寒2期',
   '',
+  ARRAY['2026春', '2026寒1期', '2026寒2期']::text[],
   '',
   0
 )
@@ -455,12 +482,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -473,6 +501,7 @@ INSERT INTO bi.performance_configuration (
   '2026-03-15',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -485,12 +514,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -503,6 +533,7 @@ INSERT INTO bi.performance_configuration (
   '2026-03-31',
   '',
   '',
+  ARRAY[]::text[],
   '',
   0
 )
@@ -515,12 +546,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -533,6 +565,7 @@ INSERT INTO bi.performance_configuration (
   '2026-03-24',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -545,12 +578,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -563,6 +597,7 @@ INSERT INTO bi.performance_configuration (
   '2026-07-31',
   '2026暑',
   '2026暑',
+  ARRAY['2026暑']::text[],
   '常规',
   0
 )
@@ -575,12 +610,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -593,6 +629,7 @@ INSERT INTO bi.performance_configuration (
   '2026-06-23',
   '2026暑',
   '',
+  ARRAY['2026暑']::text[],
   '',
   0
 )
@@ -605,12 +642,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -623,6 +661,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-07',
   '2026暑',
   '',
+  ARRAY['2026暑']::text[],
   '',
   0
 )
@@ -635,12 +674,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -653,6 +693,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-31',
   '2026暑',
   '',
+  ARRAY['2026暑']::text[],
   '',
   0
 )
@@ -665,12 +706,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -683,6 +725,7 @@ INSERT INTO bi.performance_configuration (
   '2026-07-31',
   '',
   '',
+  ARRAY[]::text[],
   '',
   0
 )
@@ -695,12 +738,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -713,6 +757,7 @@ INSERT INTO bi.performance_configuration (
   '2026-07-23',
   '2026暑',
   '',
+  ARRAY['2026暑']::text[],
   '',
   0
 )
@@ -725,12 +770,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -743,6 +789,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-19',
   '2026暑',
   '',
+  ARRAY['2026暑']::text[],
   '',
   0
 )
@@ -755,12 +802,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -773,6 +821,7 @@ INSERT INTO bi.performance_configuration (
   '2026-03-31',
   '2026春',
   '2026春',
+  ARRAY['2026春']::text[],
   '常规',
   0
 )
@@ -785,12 +834,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -803,6 +853,7 @@ INSERT INTO bi.performance_configuration (
   '2026-03-22',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -815,12 +866,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -833,6 +885,7 @@ INSERT INTO bi.performance_configuration (
   '2026-03-31',
   '2026春,2026寒',
   '',
+  ARRAY['2026春', '2026寒']::text[],
   '',
   0
 )
@@ -845,12 +898,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -863,6 +917,7 @@ INSERT INTO bi.performance_configuration (
   '2026-03-15',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -875,12 +930,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -893,6 +949,7 @@ INSERT INTO bi.performance_configuration (
   '2026-03-31',
   '',
   '',
+  ARRAY[]::text[],
   '',
   0
 )
@@ -905,12 +962,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -923,6 +981,7 @@ INSERT INTO bi.performance_configuration (
   '2026-03-24',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -935,12 +994,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -953,6 +1013,7 @@ INSERT INTO bi.performance_configuration (
   '2026-05-31',
   '2026春',
   '2026暑',
+  ARRAY['2026春', '2026暑']::text[],
   '常规',
   0
 )
@@ -965,12 +1026,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -983,6 +1045,7 @@ INSERT INTO bi.performance_configuration (
   '2026-05-24',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -995,12 +1058,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1013,6 +1077,7 @@ INSERT INTO bi.performance_configuration (
   '2026-05-31',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -1025,12 +1090,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1043,6 +1109,7 @@ INSERT INTO bi.performance_configuration (
   '2026-05-15',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -1055,12 +1122,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1073,6 +1141,7 @@ INSERT INTO bi.performance_configuration (
   '2026-05-31',
   '',
   '',
+  ARRAY[]::text[],
   '',
   0
 )
@@ -1085,12 +1154,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1103,6 +1173,7 @@ INSERT INTO bi.performance_configuration (
   '2026-05-24',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -1115,12 +1186,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1133,6 +1205,7 @@ INSERT INTO bi.performance_configuration (
   '2026-05-24',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -1145,12 +1218,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1163,6 +1237,7 @@ INSERT INTO bi.performance_configuration (
   '2026-05-31',
   '2026春',
   '2026暑',
+  ARRAY['2026春', '2026暑']::text[],
   '常规',
   0
 )
@@ -1175,12 +1250,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1193,6 +1269,7 @@ INSERT INTO bi.performance_configuration (
   '2026-06-23',
   '',
   '',
+  ARRAY[]::text[],
   '',
   0
 )
@@ -1205,12 +1282,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1223,6 +1301,7 @@ INSERT INTO bi.performance_configuration (
   '2026-06-15',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -1235,12 +1314,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1253,6 +1333,7 @@ INSERT INTO bi.performance_configuration (
   '2026-06-30',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -1265,12 +1346,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1283,6 +1365,7 @@ INSERT INTO bi.performance_configuration (
   '2026-06-30',
   '',
   '',
+  ARRAY[]::text[],
   '',
   0
 )
@@ -1295,12 +1378,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1313,6 +1397,7 @@ INSERT INTO bi.performance_configuration (
   '2026-06-23',
   '2026春,2026暑',
   '',
+  ARRAY['2026春', '2026暑']::text[],
   '',
   0
 )
@@ -1325,12 +1410,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1343,6 +1429,7 @@ INSERT INTO bi.performance_configuration (
   '2026-06-14',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -1355,12 +1442,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1373,6 +1461,7 @@ INSERT INTO bi.performance_configuration (
   '2026-06-07',
   '2026春',
   '',
+  ARRAY['2026春']::text[],
   '',
   0
 )
@@ -1385,12 +1474,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1403,6 +1493,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-31',
   '2026秋',
   '2026暑',
+  ARRAY['2026秋', '2026暑']::text[],
   '常规',
   0
 )
@@ -1415,12 +1506,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1433,6 +1525,7 @@ INSERT INTO bi.performance_configuration (
   '2026-06-23',
   '',
   '',
+  ARRAY[]::text[],
   '',
   0
 )
@@ -1445,12 +1538,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1463,6 +1557,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-15',
   '2026暑',
   '',
+  ARRAY['2026暑']::text[],
   '',
   0
 )
@@ -1475,12 +1570,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1493,6 +1589,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-31',
   '2026春,2026暑',
   '',
+  ARRAY['2026春', '2026暑']::text[],
   '',
   0
 )
@@ -1505,12 +1602,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1523,6 +1621,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-31',
   '',
   '',
+  ARRAY[]::text[],
   '',
   0
 )
@@ -1535,12 +1634,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1553,6 +1653,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-24',
   '2026暑,2026秋',
   '',
+  ARRAY['2026暑', '2026秋']::text[],
   '',
   0
 )
@@ -1565,12 +1666,13 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, config_type, del_flag
+  time_start, time_end, period1, period2, periods, config_type, del_flag
 ) VALUES (
   NULL,
   NULL,
@@ -1583,6 +1685,7 @@ INSERT INTO bi.performance_configuration (
   '2026-08-31',
   '2026暑',
   '',
+  ARRAY['2026暑']::text[],
   '',
   0
 )
@@ -1595,6 +1698,7 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 

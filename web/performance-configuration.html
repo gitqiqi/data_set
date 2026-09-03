@@ -899,23 +899,10 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
-    const storageKey = "performance_configuration_workspace_v7";
-    setDefaultBooleanFlag("PERFORMANCE_CONFIGURATION_REMOTE_DATA", false);
-    setDefaultBooleanFlag("PERFORMANCE_CONFIGURATION_REMOTE_SAVE", false);
-    setDefaultBooleanFlag("PERFORMANCE_CONFIGURATION_REMOTE_PERIODS", false);
-
     const apiBase = window.PERFORMANCE_CONFIGURATION_API_BASE || "/data_set/performance/configuration";
-    const tokenHeaderName = window.PERFORMANCE_CONFIGURATION_TOKEN_HEADER || "token";
-    const configurationListUrl = window.PERFORMANCE_CONFIGURATION_LIST_URL || `${apiBase}/list`;
-    const periodOptionsUrl = window.PERFORMANCE_CONFIGURATION_PERIOD_OPTIONS_URL ||
-      window.PERFORMANCE_PERIOD_OPTIONS_URL ||
-      `${apiBase}/periodOptions`;
-    const adminInfoUrl = window.PERFORMANCE_CONFIGURATION_ADMIN_INFO_URL || `${apiBase}/adminUserInfo`;
-    const permissionKeys = {
-      page: "performanceConfiguration",
-      view: "performanceConfiguration:view",
-      edit: "performanceConfiguration:edit"
-    };
+    const configurationListUrl = `${apiBase}/list`;
+    const periodOptionsUrl = `${apiBase}/periodOptions`;
+    const adminInfoUrl = `${apiBase}/adminUserInfo`;
 
     const els = {
       saveBtn: document.getElementById("saveBtn"),
@@ -931,18 +918,16 @@
     let records = [];
     let activeMonth = "";
     let remotePeriodOptions = [];
-    let isLoadingConfiguration = false;
+    let isLoadingConfiguration = true;
+    let isLoadingPermission = true;
     const rangeDrafts = new Map();
     let remoteAdminPermissionRows = [];
 
     function boot() {
-      syncCurrentUserFromQuery();
       const state = initialState();
       months = state.months;
       records = applyPreviousMonthDefaults(state.records);
       activeMonth = state.activeMonth;
-      remotePeriodOptions = normalizePeriodOptions(window.PERFORMANCE_CONFIGURATION_PERIOD_OPTIONS || window.PERFORMANCE_PERIOD_OPTIONS || []);
-      isLoadingConfiguration = shouldLoadRemoteConfigurationRows();
       render();
       loadConfigurationRows();
       loadPeriodOptions();
@@ -950,29 +935,11 @@
     }
 
     function initialState() {
-      const savedState = readSavedState();
       return normalizeState({
-        months: window.PERFORMANCE_CONFIGURATION_MONTHS || savedState.months || [],
-        activeMonth: window.PERFORMANCE_CONFIGURATION_ACTIVE_MONTH || savedState.activeMonth || defaultConfigMonth(),
-        records: window.PERFORMANCE_CONFIGURATION_ROWS || window.PERFORMANCE_CONFIGURATION_INITIAL_ROWS || savedState.records || []
+        months: [],
+        activeMonth: defaultConfigMonth(),
+        records: []
       });
-    }
-
-    function setDefaultBooleanFlag(key, value) {
-      if (typeof window[key] !== "boolean") {
-        window[key] = value;
-      }
-    }
-
-    function readSavedState() {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw) return {};
-      try {
-        const parsed = JSON.parse(raw);
-        return parsed && typeof parsed === "object" ? parsed : {};
-      } catch {
-        return {};
-      }
     }
 
     function normalizeState(state) {
@@ -998,34 +965,27 @@
 
     function normalizeRecord(record) {
       if (!record) return null;
-      const configMonth = monthKey(record.configMonth ?? record.config_month ?? record.month);
+      const configMonth = monthKey(record.configMonth ?? record.config_month);
       if (!configMonth) return null;
-      const legacyPeriods = unique([
-        ...splitPeriods(record.period1),
-        ...splitPeriods(record.period2)
-      ]).sort(sortPeriods);
-      const periods = splitPeriods(record.periods ?? record.period_list);
+      const periods = splitPeriods(record.periods);
       return {
         id: record.id || makeId(),
         createBy: record.createBy ?? record.create_by ?? "",
         updateBy: record.updateBy ?? record.update_by ?? "",
-        createDate: normalizeDateTime(record.createDate ?? record.create_date ?? record.create_time),
-        updateDate: normalizeDateTime(record.updateDate ?? record.update_date ?? record.update_time),
+        createDate: normalizeDateTime(record.createDate ?? record.create_date),
+        updateDate: normalizeDateTime(record.updateDate ?? record.update_date),
         configMonth,
         module: record.module || "",
         content: record.content || "",
         timeStart: normalizeDate(record.timeStart ?? record.time_start) || `${configMonth}-01`,
         timeEnd: normalizeDate(record.timeEnd ?? record.time_end) || endOfMonth(configMonth),
-        period1: normalizePeriodText(record.period1),
-        period2: normalizePeriodText(record.period2),
-        periods: periods.length ? periods : legacyPeriods,
-        configType: record.configType ?? record.config_type ?? record.type ?? "",
-        delFlag: Number(record.delFlag ?? record.del_flag ?? record.is_deleted ?? 0)
+        periods,
+        configType: record.configType ?? record.config_type ?? "",
+        delFlag: Number(record.delFlag ?? record.del_flag ?? 0)
       };
     }
 
     async function loadConfigurationRows() {
-      if (!shouldLoadRemoteConfigurationRows()) return;
       isLoadingConfiguration = true;
       render();
 
@@ -1035,7 +995,6 @@
         months = state.months;
         records = applyPreviousMonthDefaults(state.records);
         activeMonth = state.activeMonth;
-        persist();
       } catch (error) {
         console.warn("load performance configuration failed", error);
         showToast("配置接口失败，请检查后端连接");
@@ -1045,149 +1004,44 @@
       }
     }
 
-    function shouldLoadRemoteConfigurationRows() {
-      return window.PERFORMANCE_CONFIGURATION_REMOTE_DATA === true;
-    }
-
     function configurationListRequestBody() {
-      const configMonth = monthKey(window.PERFORMANCE_CONFIGURATION_CONFIG_MONTH || window.PERFORMANCE_CONFIGURATION_LIST_MONTH || "");
-      return {
-        ...(configMonth ? { configMonth } : {}),
-        delFlag: 0
-      };
+      return { delFlag: 0 };
     }
 
     function configurationStateFromResponse(data) {
-      const payload = configurationPayload(data);
+      const payload = unwrapData(data) || {};
       return normalizeState({
-        months: payload.months || payload.configMonths || [],
-        activeMonth: payload.activeMonth || payload.configMonth || activeMonth || defaultConfigMonth(),
-        records: configurationRows(payload)
+        months: payload.months || [],
+        activeMonth: payload.activeMonth || defaultConfigMonth(),
+        records: Array.isArray(payload.records) ? payload.records : []
       });
     }
 
-    function configurationPayload(data) {
-      if (!data || Array.isArray(data)) return { records: responseRows(data) };
-      if (data.data && typeof data.data === "object" && !Array.isArray(data.data)) return data.data;
-      return data;
-    }
-
-    function configurationRows(data) {
-      if (Array.isArray(data)) return data;
-      if (Array.isArray(data?.records)) return data.records;
-      if (Array.isArray(data?.rows)) return data.rows;
-      if (Array.isArray(data?.list)) return data.list;
-      if (Array.isArray(data?.data)) return data.data;
-      if (Array.isArray(data?.data?.records)) return data.data.records;
-      if (Array.isArray(data?.data?.rows)) return data.data.rows;
-      if (Array.isArray(data?.data?.list)) return data.data.list;
-      return responseRows(data);
-    }
-
     function resolvePermissionState() {
-      const explicit = explicitPermissionKeys();
-      if (explicit.configured) {
-        const keySet = new Set(explicit.keys);
-        const canEdit = keySet.has(permissionKeys.edit);
-        return {
-          canView: canEdit || keySet.has(permissionKeys.view) || keySet.has(permissionKeys.page),
-          canEdit,
-          source: "menuKey",
-          rows: []
-        };
-      }
-
-      const configured = Boolean(
-        window.PERFORMANCE_CONFIGURATION_ENABLE_AUTH ||
-        window.PERFORMANCE_CONFIGURATION_REMOTE_AUTH ||
-        window.PERFORMANCE_CONFIGURATION_ADMIN_USER_INFO ||
-        window.PERFORMANCE_CONFIGURATION_ADMIN_USERS ||
-        window.DIM_ORG_ADMIN_USER_INFO_HF ||
-        localStorage.getItem(`${storageKey}_admin_user_info`)
-      );
-
-      if (!configured) {
-        return { canView: true, canEdit: true, source: "localDemo", rows: [] };
-      }
-
-      const rows = matchedAdminPermissionRows().filter(isActiveAdminPermissionRow);
+      const rows = remoteAdminPermissionRows.map(normalizeAdminPermissionRow).filter(Boolean).filter(isActiveAdminPermissionRow);
       const canEdit = rows.some((row) => Number(row.permissionScope) === 2);
       return {
-        canView: canEdit || rows.length > 0,
-        canEdit,
+        canView: isLoadingPermission || canEdit || rows.length > 0,
+        canEdit: !isLoadingPermission && canEdit,
+        loading: isLoadingPermission,
         source: "dim_org_admin_user_info_hf",
         rows
       };
     }
 
-    function explicitPermissionKeys() {
-      const raw = window.PERFORMANCE_CONFIGURATION_PERMISSIONS;
-      if (Array.isArray(raw)) {
-        return { configured: true, keys: raw.map(String).filter(Boolean) };
-      }
-      if (typeof raw === "string") {
-        return { configured: true, keys: raw.split(/[\s,，]+/).filter(Boolean) };
-      }
-      return { configured: false, keys: [] };
-    }
-
-    function matchedAdminPermissionRows() {
-      const rows = adminPermissionRows();
-      const adminId = String(currentAdminId()).trim();
-      const mobile = String(currentMobile()).trim();
-
-      if (!adminId && !mobile) {
-        if (remoteAdminPermissionRows.length) return rows;
-        return rows.length === 1 ? rows : [];
-      }
-
-      return rows.filter((row) => {
-        return (adminId && String(row.adminId).trim() === adminId) ||
-          (mobile && String(row.mobile).trim() === mobile);
-      });
-    }
-
-    function adminPermissionRows() {
-      const source = window.PERFORMANCE_CONFIGURATION_ADMIN_USER_INFO ||
-        window.PERFORMANCE_CONFIGURATION_ADMIN_USERS ||
-        window.DIM_ORG_ADMIN_USER_INFO_HF ||
-        (remoteAdminPermissionRows.length ? remoteAdminPermissionRows : null) ||
-        readLocalAdminPermissionRows();
-      return toArray(source).map(normalizeAdminPermissionRow).filter(Boolean);
-    }
-
     async function loadAdminPermissionRows() {
-      if (!window.PERFORMANCE_CONFIGURATION_REMOTE_AUTH && !window.PERFORMANCE_CONFIGURATION_ADMIN_INFO_URL) return;
+      isLoadingPermission = true;
+      render();
 
       try {
-        const data = await postJson(adminInfoUrl, {
-          adminId: currentAdminId() || null,
-          mobile: currentMobile() || null
-        });
+        const data = await postJson(adminInfoUrl, {});
         remoteAdminPermissionRows = responseRows(data);
-        syncCurrentUserFromPermissionRows(remoteAdminPermissionRows);
-        render();
       } catch (error) {
         console.warn("load admin permission failed", error);
         showToast("权限接口失败");
-      }
-    }
-
-    function syncCurrentUserFromPermissionRows(rows) {
-      const first = rows.find(Boolean) || {};
-      const adminId = first.adminId ?? first.admin_id;
-      const mobile = first.mobile;
-      if (adminId) localStorage.setItem(`${storageKey}_current_admin_id`, adminId);
-      if (mobile) localStorage.setItem(`${storageKey}_current_mobile`, mobile);
-    }
-
-    function readLocalAdminPermissionRows() {
-      const raw = localStorage.getItem(`${storageKey}_admin_user_info`);
-      if (!raw) return [];
-      try {
-        return JSON.parse(raw);
-      } catch {
-        return [];
+      } finally {
+        isLoadingPermission = false;
+        render();
       }
     }
 
@@ -1214,37 +1068,11 @@
     }
 
     function isActiveAdminPermissionRow(row) {
-      if (row.status === "" || row.status == null) return true;
       return row.status === true || String(row.status).toLowerCase() === "true" || Number(row.status) === 1;
     }
 
-    function toArray(value) {
-      if (Array.isArray(value)) return value;
-      return value ? [value] : [];
-    }
-
     function currentAdminId() {
-      return window.PERFORMANCE_CONFIGURATION_CURRENT_ADMIN_ID ||
-        window.CURRENT_USER_ID ||
-        new URLSearchParams(window.location.search).get("adminId") ||
-        localStorage.getItem(`${storageKey}_current_admin_id`) ||
-        "";
-    }
-
-    function currentMobile() {
-      return window.PERFORMANCE_CONFIGURATION_CURRENT_MOBILE ||
-        window.CURRENT_USER_MOBILE ||
-        new URLSearchParams(window.location.search).get("mobile") ||
-        localStorage.getItem(`${storageKey}_current_mobile`) ||
-        "";
-    }
-
-    function syncCurrentUserFromQuery() {
-      const params = new URLSearchParams(window.location.search);
-      const adminId = params.get("adminId");
-      const mobile = params.get("mobile");
-      if (adminId) localStorage.setItem(`${storageKey}_current_admin_id`, adminId);
-      if (mobile) localStorage.setItem(`${storageKey}_current_mobile`, mobile);
+      return resolvePermissionState().rows[0]?.adminId || "";
     }
 
     function requireEditPermission() {
@@ -1292,6 +1120,10 @@
     function render() {
       const auth = resolvePermissionState();
       applyPermissionControls(auth);
+      if (auth.loading) {
+        renderLoading("正在加载权限。");
+        return;
+      }
       if (!auth.canView) {
         renderNoPermission();
         return;
@@ -1305,6 +1137,12 @@
         button.hidden = !auth.canEdit;
         button.disabled = !auth.canEdit;
       });
+    }
+
+    function renderLoading(message) {
+      els.activeMonthTitle.textContent = "绩效配置";
+      els.monthList.innerHTML = "";
+      els.metricWrap.innerHTML = `<div class="empty-state">${escapeHtml(message)}</div>`;
     }
 
     function renderNoPermission() {
@@ -1328,7 +1166,6 @@
         tab.addEventListener("click", () => {
           activeMonth = month;
           render();
-          persist();
         });
 
         const deleteButton = document.createElement("button");
@@ -1496,30 +1333,16 @@
       }).join("");
     }
 
-    function periodText(record) {
-      return periodValues(record).join(",");
-    }
-
     function periodValues(record) {
       const periods = splitPeriods(record.periods);
-      if (periods.length) return unique(periods).sort(sortPeriods);
-      return unique([...splitPeriods(record.period1), ...splitPeriods(record.period2)]).sort(sortPeriods);
+      return unique(periods).sort(sortPeriods);
     }
 
     function periodOptions() {
-      if (shouldLoadRemotePeriodOptions()) {
-        return unique(remotePeriodOptions).sort(sortPeriods);
-      }
-      const fromRecords = records.flatMap((record) => [
-        ...splitPeriods(record.period1),
-        ...splitPeriods(record.period2)
-      ]);
-      return unique(fromRecords).sort(sortPeriods);
+      return unique(remotePeriodOptions).sort(sortPeriods);
     }
 
     async function loadPeriodOptions() {
-      if (!shouldLoadRemotePeriodOptions()) return;
-
       try {
         const data = await postJson(periodOptionsUrl, {});
         const options = normalizePeriodOptions(data);
@@ -1531,42 +1354,24 @@
       }
     }
 
-    function shouldLoadRemotePeriodOptions() {
-      return Boolean(
-        window.PERFORMANCE_CONFIGURATION_REMOTE_PERIODS ||
-        shouldLoadRemoteConfigurationRows() ||
-        window.PERFORMANCE_CONFIGURATION_REMOTE_SAVE ||
-        window.PERFORMANCE_CONFIGURATION_PERIOD_OPTIONS_URL ||
-        window.PERFORMANCE_PERIOD_OPTIONS_URL
-      );
-    }
-
     function normalizePeriodOptions(data) {
       const rows = responseRows(data);
       return unique(rows.map(periodOptionValue).map(normalizePeriodValue)).sort(sortPeriods);
     }
 
+    function unwrapData(data) {
+      return data && typeof data === "object" && "data" in data ? data.data : data;
+    }
+
     function responseRows(data) {
-      if (Array.isArray(data)) return data;
-      if (Array.isArray(data?.data)) return data.data;
-      if (Array.isArray(data?.rows)) return data.rows;
-      if (Array.isArray(data?.list)) return data.list;
-      if (Array.isArray(data?.data?.rows)) return data.data.rows;
-      if (Array.isArray(data?.data?.list)) return data.data.list;
-      return data?.data && typeof data.data === "object" ? [data.data] : [];
+      const payload = unwrapData(data);
+      return Array.isArray(payload) ? payload : [];
     }
 
     function periodOptionValue(item) {
       if (typeof item === "string") return item;
       if (!item || typeof item !== "object") return "";
-      if (item.periodName) return item.periodName;
-      if (item.period_name) return item.period_name;
-      if (item.period) return item.period;
-      if (item.value) return item.value;
-      if (item.label) return item.label;
-      if (item.concat) return item.concat;
-      if (item.class_year && item.class_season) return `${item.class_year}${item.class_season}`;
-      return "";
+      return item.periodName ?? item.period_name ?? "";
     }
 
     function splitPeriods(value) {
@@ -1577,10 +1382,6 @@
         .split(/[,，、/]/)
         .map(normalizePeriodValue)
         .filter(Boolean);
-    }
-
-    function normalizePeriodText(value) {
-      return splitPeriods(value).join(",");
     }
 
     function normalizePeriodValue(value) {
@@ -1735,7 +1536,6 @@
       record.updateBy = operator();
       record.updateDate = nowIso();
       rangeDrafts.set(id, draft);
-      persist();
       refreshRangePicker(row, record);
       if (shouldComplete) row.querySelector(".range-popover").hidden = true;
     }
@@ -1778,11 +1578,7 @@
       if (!record) return;
       const isTimeField = field === "timeStart" || field === "timeEnd";
 
-      if (field === "period_text") {
-        updatePeriod(record, value);
-      } else {
-        record[field] = value;
-      }
+      record[field] = value;
 
       if (field === "timeStart" && record.timeEnd && record.timeEnd < value) {
         record.timeEnd = value;
@@ -1793,7 +1589,6 @@
 
       record.updateBy = operator();
       record.updateDate = nowIso();
-      persist();
       if (isTimeField) syncRangeControl(sourceElement, record);
     }
 
@@ -1812,10 +1607,6 @@
       if (end && end.value !== record.timeEnd) end.value = record.timeEnd;
     }
 
-    function updatePeriod(record, value) {
-      setPeriodValues(record, splitPeriods(value));
-    }
-
     function togglePeriod(id, period, sourceElement = null) {
       if (!requireEditPermission()) return;
       const record = records.find((item) => item.id === id);
@@ -1828,7 +1619,6 @@
       setPeriodValues(record, next);
       record.updateBy = operator();
       record.updateDate = nowIso();
-      persist();
       syncPeriodControl(sourceElement, record);
     }
 
@@ -1849,19 +1639,6 @@
     function setPeriodValues(record, values) {
       const selected = unique(values.map(normalizePeriodValue)).sort(sortPeriods);
       record.periods = selected;
-      if (!selected.length) {
-        record.period1 = "";
-        record.period2 = "";
-      } else if (selected.length === 1) {
-        record.period1 = selected[0];
-        record.period2 = "";
-      } else if (selected.length === 2) {
-        record.period1 = selected[0];
-        record.period2 = selected[1];
-      } else {
-        record.period1 = selected.join(",");
-        record.period2 = "";
-      }
     }
 
     function addMonth() {
@@ -1872,7 +1649,6 @@
       months.sort();
       copyMonthRecords(sourceMonth, next);
       activeMonth = next;
-      persist();
       render();
       showToast("已按上个月生成默认配置");
     }
@@ -1919,7 +1695,6 @@
       months = months.filter((item) => item !== month);
       if (!months.length) months = [nextMonth(month || "2026-09")];
       if (activeMonth === month) activeMonth = months[months.length - 1];
-      persist();
       render();
       showToast("已逻辑删除月份");
     }
@@ -1932,7 +1707,6 @@
         months.push(activeMonth);
         months.sort();
       }
-      persist();
       render();
     }
 
@@ -1943,7 +1717,6 @@
       record.delFlag = 1;
       record.updateBy = operator();
       record.updateDate = nowIso();
-      persist();
       render();
       showToast("已逻辑删除指标");
     }
@@ -1961,8 +1734,6 @@
         content: previousContentForModule(month, "") || "",
         timeStart: `${monthKey(month)}-01`,
         timeEnd: endOfMonth(month),
-        period1: "",
-        period2: "",
         periods: [],
         configType: "",
         delFlag: 0
@@ -1987,16 +1758,6 @@
       return candidates[0]?.content || "";
     }
 
-    function persist() {
-      localStorage.setItem(storageKey, JSON.stringify({
-        months,
-        activeMonth,
-        records
-      }));
-      localStorage.setItem(`${storageKey}_api_rows`, JSON.stringify(apiRows()));
-      localStorage.setItem(`${storageKey}_db_rows`, JSON.stringify(databaseRows()));
-    }
-
     async function saveAll() {
       if (!requireEditPermission()) return;
       const invalid = recordsForActiveMonth().find((record) => {
@@ -2018,13 +1779,7 @@
           record.configMonth = monthKey(activeMonth);
         }
       });
-      persist();
       render();
-
-      if (!shouldSaveRemoteConfiguration()) {
-        showToast("已保存当前月");
-        return;
-      }
 
       try {
         await postJson(`${apiBase}/batchUpsert`, apiRows(activeMonth));
@@ -2033,13 +1788,6 @@
         console.error(error);
         showToast("保存接口失败，请检查后端连接");
       }
-    }
-
-    function shouldSaveRemoteConfiguration() {
-      if (typeof window.PERFORMANCE_CONFIGURATION_REMOTE_SAVE === "boolean") {
-        return window.PERFORMANCE_CONFIGURATION_REMOTE_SAVE;
-      }
-      return shouldLoadRemoteConfigurationRows();
     }
 
     function apiRows(month = null) {
@@ -2057,31 +1805,9 @@
         content: record.content,
         timeStart: record.timeStart,
         timeEnd: record.timeEnd,
-        period1: record.period1,
-        period2: record.period2,
         periods: periodValues(record),
         configType: record.configType,
         delFlag: Number(record.delFlag || 0)
-      }));
-    }
-
-    function databaseRows() {
-      return records.map((record) => ({
-        id: backendId(record.id),
-        create_by: record.createBy || null,
-        update_by: record.updateBy || null,
-        create_date: record.createDate || null,
-        update_date: record.updateDate || null,
-        config_month: monthKey(record.configMonth),
-        module: record.module,
-        content: record.content,
-        time_start: record.timeStart || null,
-        time_end: record.timeEnd || null,
-        period1: record.period1,
-        period2: record.period2,
-        periods: periodValues(record),
-        config_type: record.configType,
-        del_flag: Number(record.delFlag || 0)
       }));
     }
 
@@ -2096,19 +1822,11 @@
       return currentAdminId() || "";
     }
 
-    function requestHeaders() {
-      const provider = window.PERFORMANCE_CONFIGURATION_TOKEN_PROVIDER;
-      const token = typeof provider === "function" ? provider() : window.PERFORMANCE_CONFIGURATION_TOKEN;
-      return {
-        "Content-Type": "application/json",
-        ...(token ? { [tokenHeaderName]: token } : {})
-      };
-    }
-
     async function postJson(url, body) {
       const response = await fetch(url, {
         method: "POST",
-        headers: requestHeaders(),
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify(body)
       });
       if (!response.ok) {
@@ -2158,8 +1876,6 @@
     }
 
     function defaultConfigMonth() {
-      const configured = monthKey(window.PERFORMANCE_CONFIGURATION_DEFAULT_MONTH || "");
-      if (configured) return configured;
       const now = new Date();
       return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     }
@@ -2235,12 +1951,10 @@
     });
 
     window.PERFORMANCE_CONFIGURATION_API_BASE = apiBase;
-    window.getPerformanceConfigurationHeaders = requestHeaders;
     window.getPerformanceConfigurationPermissionState = resolvePermissionState;
     window.reloadPerformanceConfigurationRows = loadConfigurationRows;
     window.reloadPerformanceConfigurationPeriodOptions = loadPeriodOptions;
     window.getPerformanceConfigurationRows = apiRows;
-    window.getPerformanceConfigurationDbRows = databaseRows;
 
     boot();
   </script>
