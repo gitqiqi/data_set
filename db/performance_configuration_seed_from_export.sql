@@ -7,7 +7,8 @@ START TRANSACTION;
 INSERT INTO bi.performance_configuration (
   create_by, update_by, create_date, update_date, config_month, module, content,
   time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+) VALUES
+(
   NULL,
   NULL,
   now(),
@@ -31,24 +32,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026秋', '2026暑']::text[],
   '常规',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -61,29 +46,13 @@ INSERT INTO bi.performance_configuration (
 分子剔除无效退，分母不剔除',
   '2026-05-18',
   '2026-06-23',
-  '202026暑',
+  '2026暑',
   '',
-  ARRAY['202026暑']::text[],
+  ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -101,24 +70,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -136,24 +89,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春', '2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -175,24 +112,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY[]::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -209,24 +130,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026暑', '2026秋']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -236,29 +141,13 @@ INSERT INTO bi.performance_configuration (
   NULL,
   '2026-08-01',
   '2026-08-31',
-  '202026暑',
+  '2026暑',
   '',
-  ARRAY['202026暑']::text[],
+  ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -268,29 +157,13 @@ INSERT INTO bi.performance_configuration (
   NULL,
   '2026-08-01',
   '2026-08-31',
-  '202026暑',
+  '2026暑',
   '',
-  ARRAY['202026暑']::text[],
+  ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -300,29 +173,13 @@ INSERT INTO bi.performance_configuration (
   NULL,
   '2026-06-26',
   '2026-08-15',
-  '202026暑',
+  '2026暑',
   '',
-  ARRAY['202026暑']::text[],
+  ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -339,29 +196,13 @@ INSERT INTO bi.performance_configuration (
 到课完课限制已结束课程',
   NULL,
   NULL,
-  '202026暑',
+  '2026暑',
   '',
-  ARRAY['202026暑']::text[],
+  ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -376,24 +217,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -408,24 +233,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '常规',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -440,24 +249,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -472,24 +265,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春', '2026寒1期', '2026寒2期']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -504,24 +281,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -536,24 +297,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY[]::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -568,24 +313,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -600,24 +329,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026暑']::text[],
   '常规',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -632,24 +345,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -664,24 +361,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -696,24 +377,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -728,24 +393,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY[]::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -760,24 +409,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -792,24 +425,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -824,24 +441,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '常规',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -856,24 +457,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -888,24 +473,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春', '2026寒']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -920,24 +489,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -952,24 +505,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY[]::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -984,24 +521,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1016,24 +537,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春', '2026暑']::text[],
   '常规',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1048,24 +553,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1080,24 +569,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1112,24 +585,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1144,24 +601,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY[]::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1176,24 +617,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1208,24 +633,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1240,24 +649,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春', '2026暑']::text[],
   '常规',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1272,24 +665,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY[]::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1304,24 +681,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1336,24 +697,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1368,24 +713,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY[]::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1400,24 +729,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春', '2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1432,24 +745,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1464,24 +761,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1496,24 +777,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026秋', '2026暑']::text[],
   '常规',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1528,24 +793,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY[]::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1560,24 +809,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1592,24 +825,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026春', '2026暑']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1624,24 +841,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY[]::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
@@ -1656,24 +857,8 @@ INSERT INTO bi.performance_configuration (
   ARRAY['2026暑', '2026秋']::text[],
   '',
   0
-)
-ON CONFLICT (config_month, module)
-DO UPDATE SET
-  update_by = EXCLUDED.update_by,
-  update_date = now(),
-  content = EXCLUDED.content,
-  time_start = EXCLUDED.time_start,
-  time_end = EXCLUDED.time_end,
-  period1 = EXCLUDED.period1,
-  period2 = EXCLUDED.period2,
-  periods = EXCLUDED.periods,
-  config_type = EXCLUDED.config_type,
-  del_flag = EXCLUDED.del_flag;
-
-INSERT INTO bi.performance_configuration (
-  create_by, update_by, create_date, update_date, config_month, module, content,
-  time_start, time_end, period1, period2, periods, config_type, del_flag
-) VALUES (
+),
+(
   NULL,
   NULL,
   now(),
