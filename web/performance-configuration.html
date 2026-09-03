@@ -1000,6 +1000,11 @@
       if (!record) return null;
       const configMonth = monthKey(record.configMonth ?? record.config_month ?? record.month);
       if (!configMonth) return null;
+      const legacyPeriods = unique([
+        ...splitPeriods(record.period1),
+        ...splitPeriods(record.period2)
+      ]).sort(sortPeriods);
+      const periods = splitPeriods(record.periods ?? record.period_list);
       return {
         id: record.id || makeId(),
         createBy: record.createBy ?? record.create_by ?? "",
@@ -1013,6 +1018,7 @@
         timeEnd: normalizeDate(record.timeEnd ?? record.time_end) || endOfMonth(configMonth),
         period1: normalizePeriodText(record.period1),
         period2: normalizePeriodText(record.period2),
+        periods: periods.length ? periods : legacyPeriods,
         configType: record.configType ?? record.config_type ?? record.type ?? "",
         delFlag: Number(record.delFlag ?? record.del_flag ?? record.is_deleted ?? 0)
       };
@@ -1495,10 +1501,9 @@
     }
 
     function periodValues(record) {
-      return unique([
-        ...splitPeriods(record.period1),
-        ...splitPeriods(record.period2)
-      ]).sort(sortPeriods);
+      const periods = splitPeriods(record.periods);
+      if (periods.length) return unique(periods).sort(sortPeriods);
+      return unique([...splitPeriods(record.period1), ...splitPeriods(record.period2)]).sort(sortPeriods);
     }
 
     function periodOptions() {
@@ -1565,6 +1570,9 @@
     }
 
     function splitPeriods(value) {
+      if (Array.isArray(value)) {
+        return unique(value.flatMap((item) => splitPeriods(item))).sort(sortPeriods);
+      }
       return String(value || "")
         .split(/[,，、/]/)
         .map(normalizePeriodValue)
@@ -1840,6 +1848,7 @@
 
     function setPeriodValues(record, values) {
       const selected = unique(values.map(normalizePeriodValue)).sort(sortPeriods);
+      record.periods = selected;
       if (!selected.length) {
         record.period1 = "";
         record.period2 = "";
@@ -1890,6 +1899,7 @@
         configMonth: monthKey(targetMonth),
         timeStart: shiftDate(record.timeStart, monthDelta) || `${targetMonth}-01`,
         timeEnd: shiftDate(record.timeEnd, monthDelta) || endOfMonth(targetMonth),
+        periods: periodValues(record),
         delFlag: 0
       }));
       records = [...clones, ...records];
@@ -1953,6 +1963,7 @@
         timeEnd: endOfMonth(month),
         period1: "",
         period2: "",
+        periods: [],
         configType: "",
         delFlag: 0
       };
@@ -2048,6 +2059,7 @@
         timeEnd: record.timeEnd,
         period1: record.period1,
         period2: record.period2,
+        periods: periodValues(record),
         configType: record.configType,
         delFlag: Number(record.delFlag || 0)
       }));
@@ -2067,6 +2079,7 @@
         time_end: record.timeEnd || null,
         period1: record.period1,
         period2: record.period2,
+        periods: periodValues(record),
         config_type: record.configType,
         del_flag: Number(record.delFlag || 0)
       }));

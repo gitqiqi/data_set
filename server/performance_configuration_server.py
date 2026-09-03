@@ -138,15 +138,21 @@ def first_value(row: Dict[str, Any], *keys: str, default: Any = "") -> Any:
     return default
 
 
-def normalize_period_text(value: Any) -> str:
+def normalize_period_list(value: Any) -> List[str]:
     values = []
-    for part in re.split(r"[,，、/]", str(value or "")):
-        text = part.strip()
-        if not text:
-            continue
-        text = re.sub(r"^(\d{2})(?=[\u4e00-\u9fa5])", r"20\1", text)
-        values.append(text)
-    return ",".join(dict.fromkeys(values))
+    items = value if isinstance(value, (list, tuple, set)) else [value]
+    for item in items:
+        for part in re.split(r"[,，、/]", str(item or "")):
+            text = part.strip()
+            if not text:
+                continue
+            text = re.sub(r"^(\d{2})(?=[\u4e00-\u9fa5])", r"20\1", text)
+            values.append(text)
+    return list(dict.fromkeys(values))
+
+
+def normalize_period_text(value: Any) -> str:
+    return ",".join(normalize_period_list(value))
 
 
 def password_matches(input_password: str, stored_password: Any) -> bool:
@@ -288,16 +294,28 @@ class PerformanceConfigurationRepository:
           time_end date,
           period1 varchar(64) NOT NULL DEFAULT '',
           period2 varchar(64) NOT NULL DEFAULT '',
+          periods text[] NOT NULL DEFAULT ARRAY[]::text[],
           config_type varchar(32) NOT NULL DEFAULT '',
           del_flag smallint NOT NULL DEFAULT 0,
           PRIMARY KEY (config_month, module)
-        )
+        );
         """
         with self.with_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(create_sql)
             conn.commit()
         self._table_ready = True
+
+    def has_periods_column(self) -> bool:
+        sql = """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = %s
+          AND table_name = %s
+          AND column_name = 'periods'
+        LIMIT 1
+        """
+        return bool(self.fetch_all(sql, [self.schema, self.table]))
 
     def list_configurations(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         self.ensure_table()
@@ -310,6 +328,7 @@ class PerformanceConfigurationRepository:
             where.append("config_month = %s")
             params.append(config_month)
 
+        periods_column = "periods" if self.has_periods_column() else "ARRAY[]::text[] AS periods"
         sql = f"""
         SELECT
           id,
@@ -324,6 +343,7 @@ class PerformanceConfigurationRepository:
           time_end,
           period1,
           period2,
+          {periods_column},
           config_type,
           del_flag
         FROM {self.qualified_table}
@@ -470,44 +490,88 @@ class PerformanceConfigurationRepository:
         if not normalized_rows:
             return {"saved": 0}
 
-        sql = f"""
-        INSERT INTO {self.qualified_table} (
-          create_by,
-          update_by,
-          create_date,
-          update_date,
-          config_month,
-          module,
-          content,
-          time_start,
-          time_end,
-          period1,
-          period2,
-          config_type,
-          del_flag
-        )
-        VALUES %s
-        ON CONFLICT (config_month, module)
-        DO UPDATE SET
-          update_by = EXCLUDED.update_by,
-          update_date = now(),
-          content = EXCLUDED.content,
-          time_start = EXCLUDED.time_start,
-          time_end = EXCLUDED.time_end,
-          period1 = EXCLUDED.period1,
-          period2 = EXCLUDED.period2,
-          config_type = EXCLUDED.config_type,
-          del_flag = EXCLUDED.del_flag
-        """
+        if self.has_periods_column():
+            values = normalized_rows
+            template = (
+                "(%s, %s, COALESCE(%s, now()), now(), %s, %s, %s, %s, %s, "
+                "COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, ARRAY[]::text[]), "
+                "COALESCE(%s, ''), COALESCE(%s, 0))"
+            )
+            sql = f"""
+            INSERT INTO {self.qualified_table} (
+              create_by,
+              update_by,
+              create_date,
+              update_date,
+              config_month,
+              module,
+              content,
+              time_start,
+              time_end,
+              period1,
+              period2,
+              periods,
+              config_type,
+              del_flag
+            )
+            VALUES %s
+            ON CONFLICT (config_month, module)
+            DO UPDATE SET
+              update_by = EXCLUDED.update_by,
+              update_date = now(),
+              content = EXCLUDED.content,
+              time_start = EXCLUDED.time_start,
+              time_end = EXCLUDED.time_end,
+              period1 = EXCLUDED.period1,
+              period2 = EXCLUDED.period2,
+              periods = EXCLUDED.periods,
+              config_type = EXCLUDED.config_type,
+              del_flag = EXCLUDED.del_flag
+            """
+        else:
+            values = [row[:10] + row[11:] for row in normalized_rows]
+            template = (
+                "(%s, %s, COALESCE(%s, now()), now(), %s, %s, %s, %s, %s, "
+                "COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, 0))"
+            )
+            sql = f"""
+            INSERT INTO {self.qualified_table} (
+              create_by,
+              update_by,
+              create_date,
+              update_date,
+              config_month,
+              module,
+              content,
+              time_start,
+              time_end,
+              period1,
+              period2,
+              config_type,
+              del_flag
+            )
+            VALUES %s
+            ON CONFLICT (config_month, module)
+            DO UPDATE SET
+              update_by = EXCLUDED.update_by,
+              update_date = now(),
+              content = EXCLUDED.content,
+              time_start = EXCLUDED.time_start,
+              time_end = EXCLUDED.time_end,
+              period1 = EXCLUDED.period1,
+              period2 = EXCLUDED.period2,
+              config_type = EXCLUDED.config_type,
+              del_flag = EXCLUDED.del_flag
+            """
 
         with self.with_connection() as conn:
             with conn.cursor() as cursor:
                 execute_values(
                     cursor,
                     sql,
-                    normalized_rows,
-                    template="(%s, %s, COALESCE(%s, now()), now(), %s, %s, %s, %s, %s, COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, 0))",
-                    page_size=len(normalized_rows),
+                    values,
+                    template=template,
+                    page_size=len(values),
                 )
             conn.commit()
 
@@ -555,6 +619,13 @@ class PerformanceConfigurationRepository:
         create_by = as_int(first_value(row, "createBy", "create_by", default=None)) or operator_id
         update_by = as_int(first_value(row, "updateBy", "update_by", default=None)) or operator_id
         create_date = parse_datetime(first_value(row, "createDate", "create_date", "create_time", default=None))
+        periods_value = first_value(row, "periods", "period_list", default=None)
+        periods = normalize_period_list(periods_value)
+        if periods_value is None:
+            periods = normalize_period_list([
+                first_value(row, "period1", default=""),
+                first_value(row, "period2", default=""),
+            ])
 
         return (
             create_by,
@@ -567,6 +638,7 @@ class PerformanceConfigurationRepository:
             parse_date(first_value(row, "timeEnd", "time_end", default=None)),
             normalize_period_text(first_value(row, "period1", default="")),
             normalize_period_text(first_value(row, "period2", default="")),
+            periods,
             str(first_value(row, "configType", "config_type", "type", default="")).strip(),
             as_smallint(first_value(row, "delFlag", "del_flag", default=0), 0),
         )

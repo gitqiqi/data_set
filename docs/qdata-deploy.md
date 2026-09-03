@@ -49,6 +49,14 @@ SESSION_MAX_AGE_SECONDS=28800
 
 账号来自 `bi.dim_org_admin_user_info_hf`。登录页支持手机号、`admin_id` 或工号登录；密码只在服务端校验，不返回前端。权限规则是 `status = 1` 可查看，`permission_scope = 2` 可编辑，其他权限范围只能查看。
 
+如果是从旧版本升级，先执行一次期别数组字段迁移：
+
+```sql
+\i db/performance_configuration_add_periods.sql
+```
+
+迁移后配置会继续保留 `period1/period2`，同时新增 `periods text[]`，后续查询可以直接用 `ANY(periods)` 或 `periods && ARRAY[...]`。
+
 启动：
 
 ```bash

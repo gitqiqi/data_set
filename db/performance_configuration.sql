@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS bi.performance_configuration (
   time_end date,
   period1 varchar(64) NOT NULL DEFAULT '',
   period2 varchar(64) NOT NULL DEFAULT '',
+  periods text[] NOT NULL DEFAULT ARRAY[]::text[],
   config_type varchar(32) NOT NULL DEFAULT '',
   del_flag smallint NOT NULL DEFAULT 0,
   PRIMARY KEY (config_month, module)
@@ -30,6 +31,7 @@ COMMENT ON COLUMN bi.performance_configuration.time_start IS '配置适用开始
 COMMENT ON COLUMN bi.performance_configuration.time_end IS '配置适用结束日期';
 COMMENT ON COLUMN bi.performance_configuration.period1 IS '期别 1，例如 2026秋；多个期别可逗号组合';
 COMMENT ON COLUMN bi.performance_configuration.period2 IS '期别 2，例如 2026暑';
+COMMENT ON COLUMN bi.performance_configuration.periods IS '期别数组，例如 ARRAY[''2026秋'', ''2026暑'']，用于 ANY/&& 查询';
 COMMENT ON COLUMN bi.performance_configuration.config_type IS '配置类型，例如 常规，没有类型时为空字符串';
 COMMENT ON COLUMN bi.performance_configuration.del_flag IS '逻辑删除标记，0 未删除，1 已删除';
 
@@ -47,6 +49,7 @@ SELECT
   time_end,
   period1,
   period2,
+  periods,
   config_type,
   del_flag
 FROM bi.performance_configuration
@@ -78,6 +81,7 @@ INSERT INTO bi.performance_configuration (
   time_end,
   period1,
   period2,
+  periods,
   config_type,
   del_flag
 )
@@ -93,6 +97,7 @@ VALUES (
   :timeEnd,
   coalesce(:period1, ''),
   coalesce(:period2, ''),
+  coalesce(:periods, ARRAY[]::text[]),
   coalesce(:configType, ''),
   coalesce(:delFlag, 0)
 )
@@ -105,6 +110,7 @@ DO UPDATE SET
   time_end = EXCLUDED.time_end,
   period1 = EXCLUDED.period1,
   period2 = EXCLUDED.period2,
+  periods = EXCLUDED.periods,
   config_type = EXCLUDED.config_type,
   del_flag = EXCLUDED.del_flag;
 

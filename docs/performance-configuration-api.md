@@ -26,6 +26,7 @@ bi.performance_configuration
 | timeEnd | time_end | 生效结束日期，可为空 |
 | period1 | period1 | 期别 1 |
 | period2 | period2 | 期别 2，没有时传空字符串 |
+| periods | periods | 期别数组，`text[]`，例如 `["2026秋", "2026暑"]` |
 | configType | config_type | 类型，没有时传空字符串 |
 | delFlag | del_flag | 逻辑删除，`0` 未删除，`1` 已删除 |
 
@@ -36,6 +37,18 @@ configMonth + module
 ```
 
 同一个月份下，一个指标只保留一条配置；期别、类型、时间范围和配置项都作为这条配置的可更新内容。
+
+`period1` 和 `period2` 先保留做旧逻辑兼容；后续查询建议优先使用 `periods`：
+
+```sql
+-- 单个期别
+WHERE '2026暑' = ANY(periods)
+
+-- 多个期别任意命中
+WHERE periods && ARRAY['2026暑', '2026秋']
+```
+
+已有表新增字段和回填脚本见 [performance_configuration_add_periods.sql](/Users/cherry/Project/data_set/db/performance_configuration_add_periods.sql)。
 
 ## 当前临时权限
 
@@ -224,6 +237,7 @@ window.PERFORMANCE_CONFIGURATION_REMOTE_SAVE = false;
     "time_end": "2026-08-31",
     "period1": "2026秋",
     "period2": "2026暑",
+    "periods": ["2026秋", "2026暑"],
     "config_type": "常规",
     "del_flag": 0
   }
@@ -266,6 +280,7 @@ window.reloadPerformanceConfigurationPeriodOptions();
     "timeEnd": "2026-08-31",
     "period1": "2026秋",
     "period2": "2026暑",
+    "periods": ["2026秋", "2026暑"],
     "configType": "常规",
     "delFlag": 0
   }
