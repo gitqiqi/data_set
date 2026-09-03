@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON_BIN="${ROOT_DIR}/.venv/bin/python"
+SERVER_FILE="${ROOT_DIR}/server/performance_configuration_server.py"
+PID_FILE="${ROOT_DIR}/qdata.pid"
+LOG_FILE="${ROOT_DIR}/qdata.log"
+
+usage() {
+  echo "Usage: ./bin/qdata {start|stop|restart|status|logs}"
+}
+
+ensure_python() {
+  if [[ ! -x "${PYTHON_BIN}" ]]; then
+    echo "Missing virtualenv Python: ${PYTHON_BIN}"
+    echo "Run: python3 -m venv .venv && .venv/bin/python -m pip install -U pip setuptools wheel && .venv/bin/python -m pip install --only-binary=:all: psycopg2-binary"
+    exit 1
+  fi
+}
+
+is_running() {
+  [[ -f "${PID_FILE}" ]] && kill -0 "$(cat "${PID_FILE}")" 2>/dev/null
+}
+
+start() {
+  ensure_python
+  if is_running; then
+    echo "qData is already running, pid $(cat "${PID_FILE}")"
+    exit 0
+  fi
+
+  cd "${ROOT_DIR}"
+  nohup "${PYTHON_BIN}" "${SERVER_FILE}" > "${LOG_FILE}" 2>&1 &
+  echo "$!" > "${PID_FILE}"
+  sleep 1
+
+  if is_running; then
+    echo "qData started, pid $(cat "${PID_FILE}")"
+    echo "Log: ${LOG_FILE}"
+  else
+    echo "qData failed to start. Last log lines:"
+    tail -40 "${LOG_FILE}" 2>/dev/null || true
+    exit 1
+  fi
+}
+
+stop() {
+  if ! is_running; then
+    echo "qData is not running"
+    rm -f "${PID_FILE}"
+    exit 0
+  fi
+
+  pid="$(cat "${PID_FILE}")"
+  kill "${pid}"
+  for _ in {1..20}; do
+    if ! kill -0 "${pid}" 2>/dev/null; then
+      rm -f "${PID_FILE}"
+      echo "qData stopped"
+      exit 0
+    fi
+    sleep 0.2
+  done
+
+  echo "qData did not stop in time; run: kill -9 ${pid}"
+  exit 1
+}
+
+status() {
+  if is_running; then
+    echo "qData is running, pid $(cat "${PID_FILE}")"
+  else
+    echo "qData is not running"
+    exit 1
+  fi
+}
+
+logs() {
+  touch "${LOG_FILE}"
+  tail -f "${LOG_FILE}"
+}
+
+case "${1:-}" in
+  start) start ;;
+  stop) stop ;;
+  restart) stop || true; start ;;
+  status) status ;;
+  logs) logs ;;
+  *) usage; exit 1 ;;
+esac

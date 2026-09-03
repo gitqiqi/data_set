@@ -53,10 +53,20 @@ SESSION_MAX_AGE_SECONDS=28800
 
 ```bash
 cd /path/to/data_set
-python3 server/performance_configuration_server.py
+./bin/qdata start
 ```
 
 如果已经有进程占用 `18080`，先停掉旧项目，或者让域名反代到这个项目实际监听的端口。
+
+常用命令：
+
+```bash
+./bin/qdata start
+./bin/qdata stop
+./bin/qdata restart
+./bin/qdata status
+./bin/qdata logs
+```
 
 ## 域名切换
 
