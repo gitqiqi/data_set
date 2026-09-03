@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>qData 登录</title>
+  <style>
+    :root {
+      --page: #f5f7fa;
+      --surface: #ffffff;
+      --text: #2f3742;
+      --muted: #74808d;
+      --line: #dfe5ec;
+      --accent: #bf7f2f;
+      --accent-dark: #9f6826;
+      --danger: #b42318;
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-size: 14px;
+    }
+
+    .login {
+      width: min(420px, 100%);
+      padding: 30px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 14px 32px rgba(41, 52, 64, 0.08);
+      display: grid;
+      gap: 22px;
+    }
+
+    .brand {
+      display: grid;
+      gap: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    form {
+      display: grid;
+      gap: 16px;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      min-height: 42px;
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      outline: none;
+      color: var(--text);
+      font: inherit;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(191, 127, 47, 0.13);
+    }
+
+    button {
+      min-height: 42px;
+      border: 1px solid var(--accent);
+      border-radius: 7px;
+      background: var(--accent);
+      color: #ffffff;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 750;
+    }
+
+    button:hover {
+      border-color: var(--accent-dark);
+      background: var(--accent-dark);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
+
+    .message {
+      min-height: 20px;
+      color: var(--danger);
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <main class="login">
+    <div class="brand">
+      <h1>qData</h1>
+      <p class="subtitle">绩效配置</p>
+    </div>
+
+    <form id="loginForm">
+      <label>
+        账号
+        <input id="identifier" name="identifier" autocomplete="username" placeholder="手机号 / adminId / 工号" required>
+      </label>
+      <label>
+        密码
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button id="submitBtn" type="submit">登录</button>
+      <div id="message" class="message" role="status" aria-live="polite"></div>
+    </form>
+  </main>
+
+  <script>
+    const apiBase = "/data_set/performance/configuration";
+    const params = new URLSearchParams(window.location.search);
+    const next = safeNext(params.get("next") || "/performance-configuration.html");
+    const form = document.getElementById("loginForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const message = document.getElementById("message");
+
+    fetch(`${apiBase}/me`, { credentials: "same-origin" })
+      .then((response) => {
+        if (response.ok) window.location.replace(next);
+      })
+      .catch(() => {});
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      message.textContent = "";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "登录中";
+
+      try {
+        const response = await fetch(`${apiBase}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({
+            identifier: form.identifier.value.trim(),
+            password: form.password.value,
+            next
+          })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.code !== 0) {
+          throw new Error(result.message || "登录失败");
+        }
+        window.location.href = safeNext(result.data?.next || next);
+      } catch (error) {
+        message.textContent = error.message || "登录失败";
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "登录";
+      }
+    });
+
+    function safeNext(value) {
+      const text = String(value || "").trim();
+      if (!text || !text.startsWith("/") || text.startsWith("//")) {
+        return "/performance-configuration.html";
+      }
+      return text;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,2236 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>绩效配置</title>
+  <style>
+    :root {
+      --page: #f5f7fa;
+      --surface: #ffffff;
+      --surface-soft: #fafbfc;
+      --text: #2f3742;
+      --muted: #74808d;
+      --line: #dfe5ec;
+      --line-strong: #cbd5df;
+      --accent: #bf7f2f;
+      --accent-dark: #9f6826;
+      --accent-soft: #fff8ed;
+      --danger: #b42318;
+      --danger-soft: #fff1ef;
+      --shadow: 0 14px 32px rgba(41, 52, 64, 0.08);
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      min-height: 88px;
+      padding: 26px 40px;
+      border-bottom: 1px solid var(--line);
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 20px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      font-size: 30px;
+      line-height: 1.2;
+      font-weight: 800;
+    }
+
+    .button {
+      min-height: 38px;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-weight: 650;
+    }
+
+    .button:hover {
+      border-color: var(--line-strong);
+      background: #fafbfc;
+    }
+
+    .button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .button.primary:hover {
+      border-color: var(--accent-dark);
+      background: var(--accent-dark);
+    }
+
+    .button.danger {
+      border-color: #ffd1cb;
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .button svg {
+      width: 17px;
+      height: 17px;
+      stroke-width: 2.3;
+    }
+
+    .button[hidden],
+    .delete-row[hidden],
+    .delete-month[hidden] {
+      display: none;
+    }
+
+    .button:disabled,
+    .range-trigger:disabled,
+    .period-trigger:disabled,
+    .period-option:disabled,
+    .delete-row:disabled,
+    .delete-month:disabled,
+    .calendar-nav:disabled,
+    .calendar-day:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+    }
+
+    .workspace {
+      min-height: calc(100vh - 88px);
+      padding: 28px 24px 40px;
+    }
+
+    .board {
+      min-height: calc(100vh - 156px);
+      display: grid;
+      grid-template-columns: 204px minmax(0, 1fr);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .month-sidebar {
+      min-width: 0;
+      border-right: 1px solid var(--line);
+      background: #f9fafb;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .side-head {
+      min-height: 118px;
+      padding: 18px 16px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      align-content: center;
+      gap: 12px;
+    }
+
+    .side-head h2 {
+      font-size: 22px;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    .side-head .button {
+      width: 100%;
+    }
+
+    .month-list {
+      padding: 14px;
+      display: grid;
+      align-content: start;
+      gap: 9px;
+      overflow: auto;
+    }
+
+    .month-item {
+      min-width: 0;
+      position: relative;
+    }
+
+    .month-tab {
+      width: 100%;
+      min-height: 48px;
+      padding: 0 34px 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      font-size: 16px;
+      font-weight: 750;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .delete-month {
+      position: absolute;
+      top: 5px;
+      right: 6px;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--danger);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      font-weight: 850;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .delete-month:hover {
+      background: var(--danger-soft);
+    }
+
+    .month-tab:hover {
+      border-color: var(--line-strong);
+      background: #ffffff;
+    }
+
+    .month-tab.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .main {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      background: #ffffff;
+    }
+
+    .main-head {
+      min-height: 74px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: #ffffff;
+    }
+
+    .main-head h2 {
+      font-size: 22px;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    .main-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .metric-wrap {
+      min-width: 0;
+      overflow: auto;
+      background: #ffffff;
+    }
+
+    .metric-table {
+      min-width: 834px;
+      display: grid;
+      grid-template-columns: 112px 156px 68px 214px minmax(220px, 1fr) 64px;
+    }
+
+    .table-head,
+    .metric-row {
+      display: contents;
+    }
+
+    .table-head > div {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      min-height: 44px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: #f9fafb;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .cell {
+      min-width: 0;
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+
+    .metric-row:nth-child(odd) .cell {
+      background: var(--surface-soft);
+    }
+
+    .metric-input {
+      width: 100%;
+      min-height: 40px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--accent);
+      outline: none;
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 750;
+      min-width: 0;
+    }
+
+    .metric-input:focus {
+      border-bottom-color: var(--accent);
+    }
+
+    .metric-input:read-only {
+      color: var(--text);
+      border-bottom-color: transparent;
+    }
+
+    .input,
+    .textarea {
+      width: 100%;
+      min-height: 38px;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      color: var(--text);
+      outline: none;
+    }
+
+    .input:focus,
+    .textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(191, 127, 47, 0.13);
+    }
+
+    .input:read-only,
+    .textarea:read-only {
+      color: var(--text);
+      background: #f8fafc;
+      box-shadow: none;
+    }
+
+    .ghost-value {
+      color: #a1aab4;
+      font-size: 13px;
+    }
+
+    .period-picker {
+      position: relative;
+      width: 100%;
+    }
+
+    .period-trigger {
+      width: 100%;
+      min-height: 38px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow: hidden;
+    }
+
+    .period-trigger:hover,
+    .period-trigger:focus {
+      outline: none;
+    }
+
+    .period-tags {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow: hidden;
+    }
+
+    .period-tag {
+      max-width: 72px;
+      padding: 3px 7px;
+      border: 1px solid #d6e0eb;
+      border-radius: 999px;
+      background: #f7fafc;
+      color: #64748b;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 12px;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    .period-placeholder {
+      padding: 6px 10px;
+      border: 1px dashed #d6e0eb;
+      border-radius: 999px;
+      color: #98a3af;
+      font-size: 13px;
+    }
+
+    .period-popover {
+      position: absolute;
+      top: 44px;
+      left: 0;
+      z-index: 6;
+      width: 230px;
+      max-height: 250px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 6px;
+      overflow: auto;
+    }
+
+    .period-popover[hidden] {
+      display: none;
+    }
+
+    .period-option {
+      min-height: 34px;
+      padding: 6px 9px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: #ffffff;
+      color: var(--text);
+      cursor: pointer;
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .period-check {
+      width: 16px;
+      height: 16px;
+      border: 1px solid #cbd5df;
+      border-radius: 4px;
+      background: #ffffff;
+      position: relative;
+    }
+
+    .period-option.selected .period-check {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .period-option.selected .period-check::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      top: 1px;
+      width: 5px;
+      height: 9px;
+      border: solid #ffffff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .period-option:hover {
+      background: #f8fafc;
+      border-color: var(--line);
+    }
+
+    .period-option.selected {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .range-picker {
+      position: relative;
+      width: 100%;
+    }
+
+    .range-trigger {
+      width: 100%;
+      min-height: 38px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    .range-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .range-icon {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      color: #7b8794;
+    }
+
+    .range-trigger:hover,
+    .range-trigger:focus {
+      border-color: var(--accent);
+    }
+
+    .range-popover {
+      position: absolute;
+      top: 44px;
+      left: 0;
+      z-index: 5;
+      width: 470px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 12px;
+    }
+
+    .range-popover[hidden] {
+      display: none;
+    }
+
+    .calendar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .calendar-title {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .calendar-nav {
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .calendar-nav:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .calendar-months {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .calendar-month {
+      min-width: 0;
+    }
+
+    .calendar-month-title {
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+      text-align: center;
+    }
+
+    .calendar-weekdays,
+    .calendar-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .calendar-weekday {
+      color: #98a3af;
+      font-size: 11px;
+      font-weight: 750;
+      text-align: center;
+    }
+
+    .calendar-day,
+    .calendar-blank {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 7px;
+    }
+
+    .calendar-day {
+      border: 1px solid transparent;
+      background: #ffffff;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .calendar-day:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .calendar-day.in-range {
+      background: #fff8ed;
+      color: var(--accent);
+    }
+
+    .calendar-day.is-edge {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .calendar-foot {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .textarea {
+      min-height: 42px;
+      max-height: 96px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .delete-row {
+      min-width: 42px;
+      min-height: 32px;
+      padding: 5px 8px;
+      border: 1px solid #ffd1cb;
+      border-radius: 7px;
+      background: var(--danger-soft);
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .action-cell {
+      justify-content: center;
+    }
+
+    .delete-row:hover {
+      border-color: #ffb3a9;
+    }
+
+    .empty-state {
+      min-height: 260px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 10;
+      max-width: min(360px, calc(100vw - 36px));
+      padding: 10px 13px;
+      border-radius: 8px;
+      background: #182129;
+      color: #ffffff;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 900px) {
+      .topbar {
+        padding: 22px;
+      }
+
+      .workspace {
+        padding: 18px;
+      }
+
+      .board {
+        grid-template-columns: 1fr;
+      }
+
+      .month-sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        grid-template-rows: auto auto;
+      }
+
+      .side-head {
+        min-height: 68px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .side-head h2 {
+        font-size: 20px;
+      }
+
+      .side-head .button {
+        width: auto;
+        min-height: 36px;
+        padding: 7px 12px;
+      }
+
+      .month-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(154px, 1fr));
+        gap: 8px;
+        padding: 10px 14px 12px;
+        max-height: 150px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        align-content: unset;
+        scrollbar-width: thin;
+      }
+
+      .month-item {
+        min-width: 0;
+      }
+
+      .month-tab {
+        width: 100%;
+        min-width: 0;
+        min-height: 40px;
+        padding: 0 30px 0 10px;
+        justify-content: center;
+        font-size: 14px;
+      }
+
+      .delete-month {
+        top: 4px;
+        right: 5px;
+        width: 22px;
+        height: 22px;
+        font-size: 16px;
+      }
+
+      .metric-table {
+        min-width: 760px;
+        grid-template-columns: 96px 140px 64px 190px minmax(200px, 1fr) 56px;
+      }
+
+      .range-popover {
+        width: min(470px, calc(100vw - 72px));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .topbar,
+      .main-head {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      h1 {
+        font-size: 28px;
+      }
+
+      .workspace {
+        padding: 12px;
+      }
+
+      .side-head {
+        min-height: 96px;
+        align-items: stretch;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .side-head .button {
+        width: 100%;
+      }
+
+      .month-list {
+        padding-inline: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
+        max-height: 188px;
+      }
+
+      .month-tab {
+        min-width: 0;
+      }
+
+      .main-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .main-actions .button {
+        width: 100%;
+      }
+
+      .calendar-months {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1>绩效配置</h1>
+    </header>
+
+    <main class="workspace">
+      <section class="board">
+        <aside class="month-sidebar">
+          <div class="side-head">
+            <h2>月份</h2>
+            <button id="addMonthBtn" class="button" type="button">+ 新增月份</button>
+          </div>
+          <div id="monthList" class="month-list" aria-label="月份"></div>
+        </aside>
+
+        <section class="main">
+          <div class="main-head">
+            <h2 id="activeMonthTitle">月份</h2>
+            <div class="main-actions">
+              <button id="addMetricBtn" class="button" type="button">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-linecap="round"></path>
+                </svg>
+                新增指标
+              </button>
+              <button id="saveBtn" class="button primary" type="button">保存</button>
+            </div>
+          </div>
+          <div id="metricWrap" class="metric-wrap"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const storageKey = "performance_configuration_workspace_v7";
+    setDefaultBooleanFlag("PERFORMANCE_CONFIGURATION_REMOTE_DATA", false);
+    setDefaultBooleanFlag("PERFORMANCE_CONFIGURATION_REMOTE_SAVE", false);
+    setDefaultBooleanFlag("PERFORMANCE_CONFIGURATION_REMOTE_PERIODS", false);
+
+    const apiBase = window.PERFORMANCE_CONFIGURATION_API_BASE || "/data_set/performance/configuration";
+    const tokenHeaderName = window.PERFORMANCE_CONFIGURATION_TOKEN_HEADER || "token";
+    const configurationListUrl = window.PERFORMANCE_CONFIGURATION_LIST_URL || `${apiBase}/list`;
+    const periodOptionsUrl = window.PERFORMANCE_CONFIGURATION_PERIOD_OPTIONS_URL ||
+      window.PERFORMANCE_PERIOD_OPTIONS_URL ||
+      `${apiBase}/periodOptions`;
+    const adminInfoUrl = window.PERFORMANCE_CONFIGURATION_ADMIN_INFO_URL || `${apiBase}/adminUserInfo`;
+    const permissionKeys = {
+      page: "performanceConfiguration",
+      view: "performanceConfiguration:view",
+      edit: "performanceConfiguration:edit"
+    };
+
+    const els = {
+      saveBtn: document.getElementById("saveBtn"),
+      addMonthBtn: document.getElementById("addMonthBtn"),
+      addMetricBtn: document.getElementById("addMetricBtn"),
+      monthList: document.getElementById("monthList"),
+      activeMonthTitle: document.getElementById("activeMonthTitle"),
+      metricWrap: document.getElementById("metricWrap"),
+      toast: document.getElementById("toast")
+    };
+
+    let months = [];
+    let records = [];
+    let activeMonth = "";
+    let remotePeriodOptions = [];
+    let isLoadingConfiguration = false;
+    const rangeDrafts = new Map();
+    let remoteAdminPermissionRows = [];
+
+    function boot() {
+      syncCurrentUserFromQuery();
+      const state = initialState();
+      months = state.months;
+      records = applyPreviousMonthDefaults(state.records);
+      activeMonth = state.activeMonth;
+      remotePeriodOptions = normalizePeriodOptions(window.PERFORMANCE_CONFIGURATION_PERIOD_OPTIONS || window.PERFORMANCE_PERIOD_OPTIONS || []);
+      isLoadingConfiguration = shouldLoadRemoteConfigurationRows();
+      render();
+      loadConfigurationRows();
+      loadPeriodOptions();
+      loadAdminPermissionRows();
+    }
+
+    function initialState() {
+      const savedState = readSavedState();
+      return normalizeState({
+        months: window.PERFORMANCE_CONFIGURATION_MONTHS || savedState.months || [],
+        activeMonth: window.PERFORMANCE_CONFIGURATION_ACTIVE_MONTH || savedState.activeMonth || defaultConfigMonth(),
+        records: window.PERFORMANCE_CONFIGURATION_ROWS || window.PERFORMANCE_CONFIGURATION_INITIAL_ROWS || savedState.records || []
+      });
+    }
+
+    function setDefaultBooleanFlag(key, value) {
+      if (typeof window[key] !== "boolean") {
+        window[key] = value;
+      }
+    }
+
+    function readSavedState() {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return {};
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function normalizeState(state) {
+      const nextRecords = (Array.isArray(state.records) ? state.records : [])
+        .map(normalizeRecord)
+        .filter(Boolean);
+
+      const monthSet = new Set((Array.isArray(state.months) ? state.months : []).map(monthKey));
+      nextRecords.forEach((record) => {
+        if (!record.delFlag) monthSet.add(monthKey(record.configMonth));
+      });
+      let nextMonths = [...monthSet].filter(Boolean).sort();
+      if (!nextMonths.length) nextMonths = [defaultConfigMonth()];
+
+      const preferred = monthKey(state.activeMonth);
+      const nextActiveMonth = nextMonths.includes(preferred) ? preferred : nextMonths[nextMonths.length - 1];
+      return {
+        months: nextMonths,
+        records: nextRecords,
+        activeMonth: nextActiveMonth
+      };
+    }
+
+    function normalizeRecord(record) {
+      if (!record) return null;
+      const configMonth = monthKey(record.configMonth ?? record.config_month ?? record.month);
+      if (!configMonth) return null;
+      return {
+        id: record.id || makeId(),
+        createBy: record.createBy ?? record.create_by ?? "",
+        updateBy: record.updateBy ?? record.update_by ?? "",
+        createDate: normalizeDateTime(record.createDate ?? record.create_date ?? record.create_time),
+        updateDate: normalizeDateTime(record.updateDate ?? record.update_date ?? record.update_time),
+        configMonth,
+        module: record.module || "",
+        content: record.content || "",
+        timeStart: normalizeDate(record.timeStart ?? record.time_start) || `${configMonth}-01`,
+        timeEnd: normalizeDate(record.timeEnd ?? record.time_end) || endOfMonth(configMonth),
+        period1: normalizePeriodText(record.period1),
+        period2: normalizePeriodText(record.period2),
+        configType: record.configType ?? record.config_type ?? record.type ?? "",
+        delFlag: Number(record.delFlag ?? record.del_flag ?? record.is_deleted ?? 0)
+      };
+    }
+
+    async function loadConfigurationRows() {
+      if (!shouldLoadRemoteConfigurationRows()) return;
+      isLoadingConfiguration = true;
+      render();
+
+      try {
+        const data = await postJson(configurationListUrl, configurationListRequestBody());
+        const state = configurationStateFromResponse(data);
+        months = state.months;
+        records = applyPreviousMonthDefaults(state.records);
+        activeMonth = state.activeMonth;
+        persist();
+      } catch (error) {
+        console.warn("load performance configuration failed", error);
+        showToast("配置接口失败，请检查后端连接");
+      } finally {
+        isLoadingConfiguration = false;
+        render();
+      }
+    }
+
+    function shouldLoadRemoteConfigurationRows() {
+      return window.PERFORMANCE_CONFIGURATION_REMOTE_DATA === true;
+    }
+
+    function configurationListRequestBody() {
+      const configMonth = monthKey(window.PERFORMANCE_CONFIGURATION_CONFIG_MONTH || window.PERFORMANCE_CONFIGURATION_LIST_MONTH || "");
+      return {
+        ...(configMonth ? { configMonth } : {}),
+        delFlag: 0
+      };
+    }
+
+    function configurationStateFromResponse(data) {
+      const payload = configurationPayload(data);
+      return normalizeState({
+        months: payload.months || payload.configMonths || [],
+        activeMonth: payload.activeMonth || payload.configMonth || activeMonth || defaultConfigMonth(),
+        records: configurationRows(payload)
+      });
+    }
+
+    function configurationPayload(data) {
+      if (!data || Array.isArray(data)) return { records: responseRows(data) };
+      if (data.data && typeof data.data === "object" && !Array.isArray(data.data)) return data.data;
+      return data;
+    }
+
+    function configurationRows(data) {
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.records)) return data.records;
+      if (Array.isArray(data?.rows)) return data.rows;
+      if (Array.isArray(data?.list)) return data.list;
+      if (Array.isArray(data?.data)) return data.data;
+      if (Array.isArray(data?.data?.records)) return data.data.records;
+      if (Array.isArray(data?.data?.rows)) return data.data.rows;
+      if (Array.isArray(data?.data?.list)) return data.data.list;
+      return responseRows(data);
+    }
+
+    function resolvePermissionState() {
+      const explicit = explicitPermissionKeys();
+      if (explicit.configured) {
+        const keySet = new Set(explicit.keys);
+        const canEdit = keySet.has(permissionKeys.edit);
+        return {
+          canView: canEdit || keySet.has(permissionKeys.view) || keySet.has(permissionKeys.page),
+          canEdit,
+          source: "menuKey",
+          rows: []
+        };
+      }
+
+      const configured = Boolean(
+        window.PERFORMANCE_CONFIGURATION_ENABLE_AUTH ||
+        window.PERFORMANCE_CONFIGURATION_REMOTE_AUTH ||
+        window.PERFORMANCE_CONFIGURATION_ADMIN_USER_INFO ||
+        window.PERFORMANCE_CONFIGURATION_ADMIN_USERS ||
+        window.DIM_ORG_ADMIN_USER_INFO_HF ||
+        localStorage.getItem(`${storageKey}_admin_user_info`)
+      );
+
+      if (!configured) {
+        return { canView: true, canEdit: true, source: "localDemo", rows: [] };
+      }
+
+      const rows = matchedAdminPermissionRows().filter(isActiveAdminPermissionRow);
+      const canEdit = rows.some((row) => permissionTypeAllowsEdit(row.permissionType));
+      return {
+        canView: canEdit || rows.length > 0,
+        canEdit,
+        source: "dim_org_admin_user_info_hf",
+        rows
+      };
+    }
+
+    function explicitPermissionKeys() {
+      const raw = window.PERFORMANCE_CONFIGURATION_PERMISSIONS;
+      if (Array.isArray(raw)) {
+        return { configured: true, keys: raw.map(String).filter(Boolean) };
+      }
+      if (typeof raw === "string") {
+        return { configured: true, keys: raw.split(/[\s,，]+/).filter(Boolean) };
+      }
+      return { configured: false, keys: [] };
+    }
+
+    function matchedAdminPermissionRows() {
+      const rows = adminPermissionRows();
+      const adminId = String(currentAdminId()).trim();
+      const mobile = String(currentMobile()).trim();
+
+      if (!adminId && !mobile) {
+        if (remoteAdminPermissionRows.length) return rows;
+        return rows.length === 1 ? rows : [];
+      }
+
+      return rows.filter((row) => {
+        return (adminId && String(row.adminId).trim() === adminId) ||
+          (mobile && String(row.mobile).trim() === mobile);
+      });
+    }
+
+    function adminPermissionRows() {
+      const source = window.PERFORMANCE_CONFIGURATION_ADMIN_USER_INFO ||
+        window.PERFORMANCE_CONFIGURATION_ADMIN_USERS ||
+        window.DIM_ORG_ADMIN_USER_INFO_HF ||
+        (remoteAdminPermissionRows.length ? remoteAdminPermissionRows : null) ||
+        readLocalAdminPermissionRows();
+      return toArray(source).map(normalizeAdminPermissionRow).filter(Boolean);
+    }
+
+    async function loadAdminPermissionRows() {
+      if (!window.PERFORMANCE_CONFIGURATION_REMOTE_AUTH && !window.PERFORMANCE_CONFIGURATION_ADMIN_INFO_URL) return;
+
+      try {
+        const data = await postJson(adminInfoUrl, {
+          adminId: currentAdminId() || null,
+          mobile: currentMobile() || null
+        });
+        remoteAdminPermissionRows = responseRows(data);
+        syncCurrentUserFromPermissionRows(remoteAdminPermissionRows);
+        render();
+      } catch (error) {
+        console.warn("load admin permission failed", error);
+        showToast("权限接口失败");
+      }
+    }
+
+    function syncCurrentUserFromPermissionRows(rows) {
+      const first = rows.find(Boolean) || {};
+      const adminId = first.adminId ?? first.admin_id;
+      const mobile = first.mobile;
+      if (adminId) localStorage.setItem(`${storageKey}_current_admin_id`, adminId);
+      if (mobile) localStorage.setItem(`${storageKey}_current_mobile`, mobile);
+    }
+
+    function readLocalAdminPermissionRows() {
+      const raw = localStorage.getItem(`${storageKey}_admin_user_info`);
+      if (!raw) return [];
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return [];
+      }
+    }
+
+    function normalizeAdminPermissionRow(row) {
+      if (!row || typeof row !== "object") return null;
+      return {
+        adminId: row.adminId ?? row.admin_id ?? "",
+        mobile: row.mobile ?? "",
+        status: row.status ?? "",
+        userName: row.userName ?? row.user_name ?? "",
+        roleId: row.roleId ?? row.role_id ?? "",
+        roleName: row.roleName ?? row.role_name ?? "",
+        adminOrganId: row.adminOrganId ?? row.admin_organ_id ?? "",
+        organName: row.organName ?? row.organ_name ?? "",
+        isFullView: row.isFullView ?? row.is_full_view ?? 0,
+        permissionType: row.permissionType ?? row.permission_type ?? "",
+        permissionScope: row.permissionScope ?? row.permission_scope ?? "",
+        adminOrganIds: row.adminOrganIds ?? row.admin_organ_ids ?? "",
+        parentIds: row.parentIds ?? row.parent_ids ?? "",
+        teacherUid: row.teacherUid ?? row.teacher_uid ?? "",
+        subject: row.subject ?? "",
+        isGroupLeader: row.isGroupLeader ?? row.is_group_leader ?? 0
+      };
+    }
+
+    function isActiveAdminPermissionRow(row) {
+      if (row.status === "" || row.status == null) return true;
+      return row.status === true || String(row.status).toLowerCase() === "true" || Number(row.status) === 1;
+    }
+
+    function permissionTypeAllowsEdit(value) {
+      return value === "" || value == null || Number(value) === 1;
+    }
+
+    function toArray(value) {
+      if (Array.isArray(value)) return value;
+      return value ? [value] : [];
+    }
+
+    function currentAdminId() {
+      return window.PERFORMANCE_CONFIGURATION_CURRENT_ADMIN_ID ||
+        window.CURRENT_USER_ID ||
+        new URLSearchParams(window.location.search).get("adminId") ||
+        localStorage.getItem(`${storageKey}_current_admin_id`) ||
+        "";
+    }
+
+    function currentMobile() {
+      return window.PERFORMANCE_CONFIGURATION_CURRENT_MOBILE ||
+        window.CURRENT_USER_MOBILE ||
+        new URLSearchParams(window.location.search).get("mobile") ||
+        localStorage.getItem(`${storageKey}_current_mobile`) ||
+        "";
+    }
+
+    function syncCurrentUserFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const adminId = params.get("adminId");
+      const mobile = params.get("mobile");
+      if (adminId) localStorage.setItem(`${storageKey}_current_admin_id`, adminId);
+      if (mobile) localStorage.setItem(`${storageKey}_current_mobile`, mobile);
+    }
+
+    function requireEditPermission() {
+      if (resolvePermissionState().canEdit) return true;
+      showToast("暂无编辑权限");
+      return false;
+    }
+
+    function applyPreviousMonthDefaults(inputRecords) {
+      const sorted = [...inputRecords].sort((a, b) => {
+        const byMonth = monthKey(a.configMonth).localeCompare(monthKey(b.configMonth));
+        if (byMonth) return byMonth;
+        return String(a.module).localeCompare(String(b.module), "zh-Hans-CN");
+      });
+      const latestContentByModule = new Map();
+
+      sorted.forEach((record) => {
+        const moduleKey = record.module.trim();
+        if (!moduleKey) return;
+        if (!record.content.trim() && latestContentByModule.has(moduleKey)) {
+          record.content = latestContentByModule.get(moduleKey);
+        }
+        if (record.content.trim()) {
+          latestContentByModule.set(moduleKey, record.content);
+        }
+      });
+
+      const allContentByModule = new Map();
+      sorted.forEach((record) => {
+        const moduleKey = record.module.trim();
+        if (moduleKey && record.content.trim() && !allContentByModule.has(moduleKey)) {
+          allContentByModule.set(moduleKey, record.content);
+        }
+      });
+
+      sorted.forEach((record) => {
+        const moduleKey = record.module.trim();
+        if (moduleKey && !record.content.trim() && allContentByModule.has(moduleKey)) {
+          record.content = allContentByModule.get(moduleKey);
+        }
+      });
+      return inputRecords;
+    }
+
+    function render() {
+      const auth = resolvePermissionState();
+      applyPermissionControls(auth);
+      if (!auth.canView) {
+        renderNoPermission();
+        return;
+      }
+      renderMonths(auth);
+      renderMetrics(auth);
+    }
+
+    function applyPermissionControls(auth) {
+      [els.addMonthBtn, els.addMetricBtn, els.saveBtn].forEach((button) => {
+        button.hidden = !auth.canEdit;
+        button.disabled = !auth.canEdit;
+      });
+    }
+
+    function renderNoPermission() {
+      els.activeMonthTitle.textContent = "绩效配置";
+      els.monthList.innerHTML = "";
+      els.metricWrap.innerHTML = '<div class="empty-state">暂无权限查看绩效配置。</div>';
+    }
+
+    function renderMonths(auth = resolvePermissionState()) {
+      els.monthList.innerHTML = "";
+
+      const orderedMonths = [...months].sort().reverse();
+      orderedMonths.forEach((month) => {
+        const item = document.createElement("div");
+        item.className = "month-item";
+
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.className = `month-tab${month === activeMonth ? " active" : ""}`;
+        tab.textContent = formatMonthLabel(month);
+        tab.addEventListener("click", () => {
+          activeMonth = month;
+          render();
+          persist();
+        });
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "delete-month";
+        deleteButton.textContent = "×";
+        deleteButton.hidden = !auth.canEdit;
+        deleteButton.disabled = !auth.canEdit;
+        deleteButton.title = `删除${formatMonthLabel(month)}`;
+        deleteButton.setAttribute("aria-label", `删除${formatMonthLabel(month)}`);
+        deleteButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          deleteMonth(month);
+        });
+
+        item.appendChild(tab);
+        item.appendChild(deleteButton);
+        els.monthList.appendChild(item);
+      });
+    }
+
+    function renderMetrics(auth = resolvePermissionState()) {
+      if (!auth.canView) {
+        renderNoPermission();
+        return;
+      }
+
+      const readonly = !auth.canEdit;
+      const readonlyAttr = readonly ? " readonly" : "";
+      const disabledAttr = readonly ? " disabled" : "";
+      const rows = recordsForActiveMonth();
+      els.activeMonthTitle.textContent = activeMonth ? formatMonthLabel(activeMonth) : "绩效配置";
+
+      if (isLoadingConfiguration) {
+        els.metricWrap.innerHTML = '<div class="empty-state">正在加载绩效配置。</div>';
+        return;
+      }
+
+      if (!rows.length) {
+        els.metricWrap.innerHTML = `<div class="empty-state">${readonly ? "当前月份暂无指标。" : "当前月份暂无指标，点击“新增指标”开始配置。"}</div>`;
+        return;
+      }
+
+      const table = document.createElement("div");
+      table.className = "metric-table";
+        table.innerHTML = `
+        <div class="table-head">
+          <div>指标</div>
+          <div>期别</div>
+          <div>类型</div>
+          <div>时间范围</div>
+          <div>配置项</div>
+          <div>操作</div>
+        </div>
+      `;
+
+      rows.forEach((record) => {
+        const row = document.createElement("div");
+        row.className = "metric-row";
+        row.dataset.id = record.id;
+        row.innerHTML = `
+          <div class="cell">
+            <input class="metric-input" data-field="module" value="${escapeAttr(record.module)}" placeholder="请输入指标"${readonlyAttr}>
+          </div>
+          <div class="cell">
+            ${periodControl(record, readonly)}
+          </div>
+          <div class="cell">
+            ${typeControl(record, readonly)}
+          </div>
+          <div class="cell">
+            <div class="range-picker">
+              <button class="range-trigger" type="button"${disabledAttr}>
+                <span class="range-text">${escapeHtml(rangeLabel(record))}</span>
+                <svg class="range-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M8 2v4M16 2v4M3.5 9.5h17M6 5h12a2.5 2.5 0 0 1 2.5 2.5v10A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5v-10A2.5 2.5 0 0 1 6 5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+              </button>
+              <div class="range-popover" hidden>
+                ${rangeCalendar(record)}
+              </div>
+            </div>
+          </div>
+          <div class="cell">
+            <textarea class="textarea" data-field="content" placeholder="备注，可留空"${readonlyAttr}>${escapeHtml(record.content)}</textarea>
+          </div>
+          <div class="cell action-cell">
+            <button class="delete-row" type="button" aria-label="删除${escapeAttr(record.module)}"${readonly ? " hidden disabled" : ""}>删除</button>
+          </div>
+        `;
+
+        if (!readonly) {
+          row.querySelectorAll("[data-field]").forEach((field) => {
+            field.addEventListener("input", (event) => updateRecord(record.id, event.target.dataset.field, event.target.value, event.target));
+            field.addEventListener("change", (event) => updateRecord(record.id, event.target.dataset.field, event.target.value, event.target));
+          });
+          row.querySelector(".range-trigger").addEventListener("click", (event) => {
+            event.stopPropagation();
+            closePeriodPopovers();
+            closeRangePopovers(row);
+            openRangePicker(row, record.id);
+            row.querySelector(".range-popover").hidden = false;
+          });
+          row.querySelector(".range-popover").addEventListener("click", (event) => {
+            event.stopPropagation();
+          });
+          bindRangeCalendar(row, record.id);
+          row.querySelector(".period-trigger").addEventListener("click", (event) => {
+            event.stopPropagation();
+            closeRangePopovers();
+            closePeriodPopovers(row);
+            row.querySelector(".period-popover").hidden = false;
+          });
+          row.querySelector(".period-popover").addEventListener("click", (event) => {
+            event.stopPropagation();
+          });
+          row.querySelectorAll("[data-period]").forEach((option) => {
+            option.addEventListener("click", () => togglePeriod(record.id, option.dataset.period, option));
+          });
+          row.querySelector(".delete-row").addEventListener("click", () => softDeleteRecord(record.id));
+        }
+        table.appendChild(row);
+      });
+
+      els.metricWrap.innerHTML = "";
+      els.metricWrap.appendChild(table);
+    }
+
+    function typeControl(record, readonly = false) {
+      if (!record.configType.trim()) {
+        return '<span class="ghost-value">无</span>';
+      }
+      return `<input class="input" data-field="configType" value="${escapeAttr(record.configType)}" placeholder="例如 常规"${readonly ? " readonly" : ""}>`;
+    }
+
+    function periodControl(record, readonly = false) {
+      return `
+        <div class="period-picker">
+          <button class="period-trigger" type="button"${readonly ? " disabled" : ""}>
+            <span class="period-tags">${periodTagMarkup(record)}</span>
+          </button>
+          <div class="period-popover" hidden>${periodOptionMarkup(record, readonly)}</div>
+        </div>
+      `;
+    }
+
+    function periodTagMarkup(record) {
+      const selected = periodValues(record);
+      if (!selected.length) return '<span class="period-placeholder">选择期别</span>';
+      return selected
+        .map((period) => `<span class="period-tag" title="${escapeAttr(formatPeriodLabel(period))}">${escapeHtml(formatPeriodLabel(period))}</span>`)
+        .join("");
+    }
+
+    function periodOptionMarkup(record, readonly = false) {
+      const selected = periodValues(record);
+      return periodOptions().map((period) => {
+        const selectedClass = selected.includes(period) ? " selected" : "";
+        return `
+          <button class="period-option${selectedClass}" type="button" data-period="${escapeAttr(period)}"${readonly ? " disabled" : ""}>
+            <span class="period-check" aria-hidden="true"></span>
+            <span>${escapeHtml(formatPeriodLabel(period))}</span>
+          </button>
+        `;
+      }).join("");
+    }
+
+    function periodText(record) {
+      return periodValues(record).join(",");
+    }
+
+    function periodValues(record) {
+      return unique([
+        ...splitPeriods(record.period1),
+        ...splitPeriods(record.period2)
+      ]).sort(sortPeriods);
+    }
+
+    function periodOptions() {
+      if (shouldLoadRemotePeriodOptions()) {
+        return unique(remotePeriodOptions).sort(sortPeriods);
+      }
+      const fromRecords = records.flatMap((record) => [
+        ...splitPeriods(record.period1),
+        ...splitPeriods(record.period2)
+      ]);
+      return unique(fromRecords).sort(sortPeriods);
+    }
+
+    async function loadPeriodOptions() {
+      if (!shouldLoadRemotePeriodOptions()) return;
+
+      try {
+        const data = await postJson(periodOptionsUrl, {});
+        const options = normalizePeriodOptions(data);
+        if (!options.length) return;
+        remotePeriodOptions = options;
+        render();
+      } catch (error) {
+        console.warn("load period options failed", error);
+      }
+    }
+
+    function shouldLoadRemotePeriodOptions() {
+      return Boolean(
+        window.PERFORMANCE_CONFIGURATION_REMOTE_PERIODS ||
+        shouldLoadRemoteConfigurationRows() ||
+        window.PERFORMANCE_CONFIGURATION_REMOTE_SAVE ||
+        window.PERFORMANCE_CONFIGURATION_PERIOD_OPTIONS_URL ||
+        window.PERFORMANCE_PERIOD_OPTIONS_URL
+      );
+    }
+
+    function normalizePeriodOptions(data) {
+      const rows = responseRows(data);
+      return unique(rows.map(periodOptionValue).map(normalizePeriodValue)).sort(sortPeriods);
+    }
+
+    function responseRows(data) {
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.data)) return data.data;
+      if (Array.isArray(data?.rows)) return data.rows;
+      if (Array.isArray(data?.list)) return data.list;
+      if (Array.isArray(data?.data?.rows)) return data.data.rows;
+      if (Array.isArray(data?.data?.list)) return data.data.list;
+      return data?.data && typeof data.data === "object" ? [data.data] : [];
+    }
+
+    function periodOptionValue(item) {
+      if (typeof item === "string") return item;
+      if (!item || typeof item !== "object") return "";
+      if (item.periodName) return item.periodName;
+      if (item.period_name) return item.period_name;
+      if (item.period) return item.period;
+      if (item.value) return item.value;
+      if (item.label) return item.label;
+      if (item.concat) return item.concat;
+      if (item.class_year && item.class_season) return `${item.class_year}${item.class_season}`;
+      return "";
+    }
+
+    function splitPeriods(value) {
+      return String(value || "")
+        .split(/[,，、/]/)
+        .map(normalizePeriodValue)
+        .filter(Boolean);
+    }
+
+    function normalizePeriodText(value) {
+      return splitPeriods(value).join(",");
+    }
+
+    function normalizePeriodValue(value) {
+      const text = String(value || "").trim();
+      if (!text) return "";
+      return text.replace(/^(\d{2})(?=[\u4e00-\u9fa5])/, "20$1");
+    }
+
+    function formatPeriodLabel(value) {
+      return normalizePeriodValue(value);
+    }
+
+    function sortPeriods(a, b) {
+      const seasonRank = (value) => {
+        const text = normalizePeriodValue(value);
+        const year = Number(text.match(/^(\d{4})/)?.[1] || 0);
+        const rankMap = { "寒": 1, "春": 2, "暑": 3, "秋": 4 };
+        const season = Object.keys(rankMap).find((key) => text.includes(key)) || "";
+        const phase = Number(text.match(/(\d+)期/)?.[1] || 0);
+        return [year, rankMap[season] || 0, phase, text];
+      };
+      const left = seasonRank(a);
+      const right = seasonRank(b);
+      for (let index = 0; index < left.length; index += 1) {
+        if (left[index] < right[index]) return 1;
+        if (left[index] > right[index]) return -1;
+      }
+      return 0;
+    }
+
+    function unique(values) {
+      return [...new Set(values.filter(Boolean))];
+    }
+
+    function rangeLabel(record) {
+      return `${formatDateSlash(record.timeStart)}～${formatDateSlash(record.timeEnd)}`;
+    }
+
+    function openRangePicker(row, id) {
+      const record = records.find((item) => item.id === id);
+      if (!record) return;
+      const draft = rangeDrafts.get(id) || {
+        start: record.timeStart,
+        end: record.timeEnd,
+        viewMonth: monthKey(record.timeStart || record.configMonth),
+        stage: "start"
+      };
+      draft.start = record.timeStart;
+      draft.end = record.timeEnd;
+      draft.stage = "start";
+      draft.viewMonth = draft.viewMonth || monthKey(record.timeStart || record.configMonth);
+      rangeDrafts.set(id, draft);
+      refreshRangePicker(row, record);
+    }
+
+    function rangeCalendar(record) {
+      const draft = rangeDrafts.get(record.id) || {
+        start: record.timeStart,
+        end: record.timeEnd,
+        viewMonth: monthKey(record.timeStart || record.configMonth),
+        stage: "start"
+      };
+      const firstMonth = draft.viewMonth || monthKey(record.timeStart || record.configMonth);
+      const endMonth = monthKey(draft.end);
+      const secondMonth = draft.stage === "start" && endMonth && endMonth !== firstMonth
+        ? endMonth
+        : addMonths(firstMonth, 1);
+      return `
+        <div class="calendar-head">
+          <button class="calendar-nav" type="button" data-range-month="-1" aria-label="上个月">‹</button>
+          <div class="calendar-title">${escapeHtml(`${formatDateSlash(draft.start)}～${formatDateSlash(draft.end)}`)}</div>
+          <button class="calendar-nav" type="button" data-range-month="1" aria-label="下个月">›</button>
+        </div>
+        <div class="calendar-months">
+          ${calendarMonth(firstMonth, draft)}
+          ${calendarMonth(secondMonth, draft)}
+        </div>
+      `;
+    }
+
+    function calendarMonth(month, draft) {
+      const weekdays = ["日", "一", "二", "三", "四", "五", "六"]
+        .map((day) => `<div class="calendar-weekday">${day}</div>`)
+        .join("");
+      const [year, monthIndex] = month.split("-").map(Number);
+      const firstDay = new Date(year, monthIndex - 1, 1).getDay();
+      const days = new Date(year, monthIndex, 0).getDate();
+      const blanks = Array.from({ length: firstDay }, () => '<div class="calendar-blank"></div>').join("");
+      const dayButtons = Array.from({ length: days }, (_, index) => {
+        const day = index + 1;
+        const value = `${month}-${String(day).padStart(2, "0")}`;
+        const inRange = draft.start && draft.end && value >= draft.start && value <= draft.end;
+        const isEdge = value === draft.start || value === draft.end;
+        const classes = [
+          "calendar-day",
+          inRange ? "in-range" : "",
+          isEdge ? "is-edge" : ""
+        ].filter(Boolean).join(" ");
+        return `<button class="${classes}" type="button" data-range-date="${value}">${day}</button>`;
+      }).join("");
+      return `
+        <div class="calendar-month">
+          <div class="calendar-month-title">${escapeHtml(formatMonthLabel(month))}</div>
+          <div class="calendar-weekdays">${weekdays}</div>
+          <div class="calendar-days">${blanks}${dayButtons}</div>
+        </div>
+      `;
+    }
+
+    function bindRangeCalendar(row, id) {
+      row.querySelectorAll("[data-range-month]").forEach((button) => {
+        button.addEventListener("click", () => moveRangeCalendar(id, Number(button.dataset.rangeMonth), row));
+      });
+      row.querySelectorAll("[data-range-date]").forEach((button) => {
+        button.addEventListener("click", () => selectRangeDate(id, button.dataset.rangeDate, row));
+      });
+    }
+
+    function moveRangeCalendar(id, delta, row) {
+      const record = records.find((item) => item.id === id);
+      if (!record) return;
+      const draft = ensureRangeDraft(record);
+      draft.viewMonth = addMonths(draft.viewMonth, delta);
+      rangeDrafts.set(id, draft);
+      refreshRangePicker(row, record);
+    }
+
+    function selectRangeDate(id, value, row) {
+      if (!requireEditPermission()) return;
+      const record = records.find((item) => item.id === id);
+      if (!record) return;
+      const draft = ensureRangeDraft(record);
+      const shouldComplete = draft.stage === "end" && draft.start;
+
+      if (shouldComplete) {
+        const start = value < draft.start ? value : draft.start;
+        const end = value < draft.start ? draft.start : value;
+        record.timeStart = start;
+        record.timeEnd = end;
+        draft.start = start;
+        draft.end = end;
+        draft.stage = "start";
+      } else {
+        record.timeStart = value;
+        record.timeEnd = value;
+        draft.start = value;
+        draft.end = value;
+        draft.stage = "end";
+        draft.viewMonth = monthKey(value);
+      }
+
+      record.updateBy = operator();
+      record.updateDate = nowIso();
+      rangeDrafts.set(id, draft);
+      persist();
+      refreshRangePicker(row, record);
+      if (shouldComplete) row.querySelector(".range-popover").hidden = true;
+    }
+
+    function ensureRangeDraft(record) {
+      const draft = rangeDrafts.get(record.id) || {
+        start: record.timeStart,
+        end: record.timeEnd,
+        viewMonth: monthKey(record.timeStart || record.configMonth),
+        stage: "start"
+      };
+      draft.viewMonth = draft.viewMonth || monthKey(record.timeStart || record.configMonth);
+      return draft;
+    }
+
+    function refreshRangePicker(row, record) {
+      const popover = row.querySelector(".range-popover");
+      if (popover) {
+        popover.innerHTML = rangeCalendar(record);
+        bindRangeCalendar(row, record.id);
+      }
+      syncRangeControl(row, record);
+    }
+
+    function closeRangePopovers(exceptRow = null) {
+      document.querySelectorAll(".range-popover").forEach((popover) => {
+        if (!exceptRow || !exceptRow.contains(popover)) popover.hidden = true;
+      });
+    }
+
+    function closePeriodPopovers(exceptRow = null) {
+      document.querySelectorAll(".period-popover").forEach((popover) => {
+        if (!exceptRow || !exceptRow.contains(popover)) popover.hidden = true;
+      });
+    }
+
+    function updateRecord(id, field, value, sourceElement = null) {
+      if (!requireEditPermission()) return;
+      const record = records.find((item) => item.id === id);
+      if (!record) return;
+      const isTimeField = field === "timeStart" || field === "timeEnd";
+
+      if (field === "period_text") {
+        updatePeriod(record, value);
+      } else {
+        record[field] = value;
+      }
+
+      if (field === "timeStart" && record.timeEnd && record.timeEnd < value) {
+        record.timeEnd = value;
+      }
+      if (field === "timeEnd" && record.timeStart && record.timeStart > value) {
+        record.timeStart = value;
+      }
+
+      record.updateBy = operator();
+      record.updateDate = nowIso();
+      persist();
+      if (isTimeField) syncRangeControl(sourceElement, record);
+    }
+
+    function syncRangeControl(sourceElement, record) {
+      const row = sourceElement?.classList?.contains("metric-row")
+        ? sourceElement
+        : sourceElement?.closest(".metric-row");
+      if (!row) return;
+      const trigger = row.querySelector(".range-trigger");
+      const text = row.querySelector(".range-text");
+      const start = row.querySelector('[data-field="timeStart"]');
+      const end = row.querySelector('[data-field="timeEnd"]');
+      if (text) text.textContent = rangeLabel(record);
+      if (!text && trigger) trigger.textContent = rangeLabel(record);
+      if (start && start.value !== record.timeStart) start.value = record.timeStart;
+      if (end && end.value !== record.timeEnd) end.value = record.timeEnd;
+    }
+
+    function updatePeriod(record, value) {
+      setPeriodValues(record, splitPeriods(value));
+    }
+
+    function togglePeriod(id, period, sourceElement = null) {
+      if (!requireEditPermission()) return;
+      const record = records.find((item) => item.id === id);
+      if (!record) return;
+      const normalized = normalizePeriodValue(period);
+      const selected = periodValues(record);
+      const next = selected.includes(normalized)
+        ? selected.filter((item) => item !== normalized)
+        : [...selected, normalized].sort(sortPeriods);
+      setPeriodValues(record, next);
+      record.updateBy = operator();
+      record.updateDate = nowIso();
+      persist();
+      syncPeriodControl(sourceElement, record);
+    }
+
+    function syncPeriodControl(sourceElement, record) {
+      const row = sourceElement?.closest(".metric-row");
+      if (!row) return;
+      const tags = row.querySelector(".period-tags");
+      const popover = row.querySelector(".period-popover");
+      if (tags) tags.innerHTML = periodTagMarkup(record);
+      if (popover) {
+        const selected = periodValues(record);
+        popover.querySelectorAll("[data-period]").forEach((option) => {
+          option.classList.toggle("selected", selected.includes(option.dataset.period));
+        });
+      }
+    }
+
+    function setPeriodValues(record, values) {
+      const selected = unique(values.map(normalizePeriodValue)).sort(sortPeriods);
+      if (!selected.length) {
+        record.period1 = "";
+        record.period2 = "";
+      } else if (selected.length === 1) {
+        record.period1 = selected[0];
+        record.period2 = "";
+      } else if (selected.length === 2) {
+        record.period1 = selected[0];
+        record.period2 = selected[1];
+      } else {
+        record.period1 = selected.join(",");
+        record.period2 = "";
+      }
+    }
+
+    function addMonth() {
+      if (!requireEditPermission()) return;
+      const sourceMonth = months[months.length - 1] || activeMonth || "2026-09";
+      const next = nextMonth(sourceMonth);
+      if (!months.includes(next)) months.push(next);
+      months.sort();
+      copyMonthRecords(sourceMonth, next);
+      activeMonth = next;
+      persist();
+      render();
+      showToast("已按上个月生成默认配置");
+    }
+
+    function copyMonthRecords(sourceMonth, targetMonth) {
+      const sourceRows = recordsForMonth(sourceMonth);
+      if (!sourceRows.length) {
+        records.unshift(createRecord(targetMonth));
+        return;
+      }
+
+      const existing = recordsForMonth(targetMonth);
+      if (existing.length) return;
+
+      const now = nowIso();
+      const monthDelta = monthOffset(sourceMonth, targetMonth);
+      const clones = sourceRows.map((record) => ({
+        ...record,
+        id: makeId(),
+        createBy: operator(),
+        updateBy: operator(),
+        createDate: now,
+        updateDate: now,
+        configMonth: monthKey(targetMonth),
+        timeStart: shiftDate(record.timeStart, monthDelta) || `${targetMonth}-01`,
+        timeEnd: shiftDate(record.timeEnd, monthDelta) || endOfMonth(targetMonth),
+        delFlag: 0
+      }));
+      records = [...clones, ...records];
+    }
+
+    function deleteMonth(month = activeMonth) {
+      if (!requireEditPermission()) return;
+      if (!confirm(`删除 ${formatMonthLabel(month)} 的全部配置？`)) return;
+      const now = nowIso();
+      records.forEach((record) => {
+        if (monthKey(record.configMonth) === month) {
+          record.delFlag = 1;
+          record.updateBy = operator();
+          record.updateDate = now;
+        }
+      });
+      months = months.filter((item) => item !== month);
+      if (!months.length) months = [nextMonth(month || "2026-09")];
+      if (activeMonth === month) activeMonth = months[months.length - 1];
+      persist();
+      render();
+      showToast("已逻辑删除月份");
+    }
+
+    function addMetric() {
+      if (!requireEditPermission()) return;
+      const record = createRecord(activeMonth);
+      records.unshift(record);
+      if (!months.includes(activeMonth)) {
+        months.push(activeMonth);
+        months.sort();
+      }
+      persist();
+      render();
+    }
+
+    function softDeleteRecord(id) {
+      if (!requireEditPermission()) return;
+      const record = records.find((item) => item.id === id);
+      if (!record) return;
+      record.delFlag = 1;
+      record.updateBy = operator();
+      record.updateDate = nowIso();
+      persist();
+      render();
+      showToast("已逻辑删除指标");
+    }
+
+    function createRecord(month) {
+      const now = nowIso();
+      return {
+        id: makeId(),
+        createBy: operator(),
+        updateBy: operator(),
+        createDate: now,
+        updateDate: now,
+        configMonth: monthKey(month),
+        module: nextMetricName(month),
+        content: previousContentForModule(month, "") || "",
+        timeStart: `${monthKey(month)}-01`,
+        timeEnd: endOfMonth(month),
+        period1: "",
+        period2: "",
+        configType: "",
+        delFlag: 0
+      };
+    }
+
+    function recordsForActiveMonth() {
+      return recordsForMonth(activeMonth)
+        .sort((a, b) => String(a.module).localeCompare(String(b.module), "zh-Hans-CN"));
+    }
+
+    function recordsForMonth(month) {
+      return records.filter((record) => monthKey(record.configMonth) === monthKey(month) && !record.delFlag);
+    }
+
+    function previousContentForModule(month, moduleName) {
+      const target = monthKey(month);
+      const candidates = records
+        .filter((record) => !record.delFlag && monthKey(record.configMonth) < target && record.content.trim())
+        .filter((record) => !moduleName || record.module === moduleName)
+        .sort((a, b) => monthKey(b.configMonth).localeCompare(monthKey(a.configMonth)));
+      return candidates[0]?.content || "";
+    }
+
+    function persist() {
+      localStorage.setItem(storageKey, JSON.stringify({
+        months,
+        activeMonth,
+        records
+      }));
+      localStorage.setItem(`${storageKey}_api_rows`, JSON.stringify(apiRows()));
+      localStorage.setItem(`${storageKey}_db_rows`, JSON.stringify(databaseRows()));
+    }
+
+    async function saveAll() {
+      if (!requireEditPermission()) return;
+      const invalid = recordsForActiveMonth().find((record) => {
+        return !record.module.trim() || !record.timeStart || !record.timeEnd || record.timeStart > record.timeEnd;
+      });
+
+      if (invalid) {
+        showToast("请检查指标名称和时间范围");
+        return;
+      }
+
+      const now = nowIso();
+      records.forEach((record) => {
+        if (monthKey(record.configMonth) === activeMonth && !record.delFlag) {
+          if (!record.createBy) record.createBy = operator();
+          if (!record.createDate) record.createDate = now;
+          record.updateBy = operator();
+          record.updateDate = now;
+          record.configMonth = monthKey(activeMonth);
+        }
+      });
+      persist();
+      render();
+
+      if (!shouldSaveRemoteConfiguration()) {
+        showToast("已保存");
+        return;
+      }
+
+      try {
+        await postJson(`${apiBase}/batchUpsert`, apiRows());
+        showToast("已保存到数据库");
+      } catch (error) {
+        console.error(error);
+        showToast("保存接口失败，请检查后端连接");
+      }
+    }
+
+    function shouldSaveRemoteConfiguration() {
+      if (typeof window.PERFORMANCE_CONFIGURATION_REMOTE_SAVE === "boolean") {
+        return window.PERFORMANCE_CONFIGURATION_REMOTE_SAVE;
+      }
+      return shouldLoadRemoteConfigurationRows();
+    }
+
+    function apiRows() {
+      return records.map((record) => ({
+        id: backendId(record.id),
+        createBy: record.createBy || null,
+        updateBy: record.updateBy || null,
+        createDate: record.createDate || null,
+        updateDate: record.updateDate || null,
+        configMonth: monthKey(record.configMonth),
+        module: record.module,
+        content: record.content,
+        timeStart: record.timeStart,
+        timeEnd: record.timeEnd,
+        period1: record.period1,
+        period2: record.period2,
+        configType: record.configType,
+        delFlag: Number(record.delFlag || 0)
+      }));
+    }
+
+    function databaseRows() {
+      return records.map((record) => ({
+        id: backendId(record.id),
+        create_by: record.createBy || null,
+        update_by: record.updateBy || null,
+        create_date: record.createDate || null,
+        update_date: record.updateDate || null,
+        config_month: monthKey(record.configMonth),
+        module: record.module,
+        content: record.content,
+        time_start: record.timeStart || null,
+        time_end: record.timeEnd || null,
+        period1: record.period1,
+        period2: record.period2,
+        config_type: record.configType,
+        del_flag: Number(record.delFlag || 0)
+      }));
+    }
+
+    function backendId(value) {
+      const text = String(value ?? "").trim();
+      if (!/^\d+$/.test(text)) return null;
+      const number = Number(text);
+      return Number.isSafeInteger(number) ? number : text;
+    }
+
+    function operator() {
+      return currentAdminId() || "";
+    }
+
+    function requestHeaders() {
+      const provider = window.PERFORMANCE_CONFIGURATION_TOKEN_PROVIDER;
+      const token = typeof provider === "function" ? provider() : window.PERFORMANCE_CONFIGURATION_TOKEN;
+      return {
+        "Content-Type": "application/json",
+        ...(token ? { [tokenHeaderName]: token } : {})
+      };
+    }
+
+    async function postJson(url, body) {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: requestHeaders(),
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.headers.get("content-type")?.includes("application/json")
+        ? response.json()
+        : response.text();
+    }
+
+    function nextMetricName(month) {
+      const used = new Set(recordsForMonth(month).map((record) => record.module));
+      if (!used.has("新指标")) return "新指标";
+      let index = 2;
+      while (used.has(`新指标${index}`)) index += 1;
+      return `新指标${index}`;
+    }
+
+    function nextMonth(month) {
+      return addMonths(month, 1);
+    }
+
+    function addMonths(month, delta) {
+      const [year, monthIndex] = monthKey(month).split("-").map(Number);
+      const date = new Date(year, monthIndex - 1 + delta, 1);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    function endOfMonth(month) {
+      const [year, monthIndex] = monthKey(month).split("-").map(Number);
+      const date = new Date(year, monthIndex, 0);
+      return `${year}-${String(monthIndex).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
+    function monthOffset(fromMonth, toMonth) {
+      const [fromYear, fromIndex] = monthKey(fromMonth).split("-").map(Number);
+      const [toYear, toIndex] = monthKey(toMonth).split("-").map(Number);
+      return (toYear - fromYear) * 12 + toIndex - fromIndex;
+    }
+
+    function shiftDate(value, monthDelta) {
+      const dateText = normalizeDate(value);
+      if (!dateText) return "";
+      const [year, month, day] = dateText.split("-").map(Number);
+      const shifted = new Date(year, month - 1 + monthDelta, day);
+      return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, "0")}-${String(shifted.getDate()).padStart(2, "0")}`;
+    }
+
+    function defaultConfigMonth() {
+      const configured = monthKey(window.PERFORMANCE_CONFIGURATION_DEFAULT_MONTH || "");
+      if (configured) return configured;
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    function monthKey(value) {
+      if (!value) return "";
+      const text = String(value);
+      const match = text.match(/^(\d{4})-(\d{2})/);
+      return match ? `${match[1]}-${match[2]}` : text;
+    }
+
+    function formatMonthLabel(value) {
+      const key = monthKey(value);
+      if (!/^\d{4}-\d{2}$/.test(key)) return key || "-";
+      const [year, month] = key.split("-");
+      return `${year}年${month}月`;
+    }
+
+    function normalizeDate(value) {
+      if (!value) return "";
+      if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
+      const text = String(value);
+      const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      return match ? `${match[1]}-${match[2]}-${match[3]}` : text;
+    }
+
+    function formatDateSlash(value) {
+      return normalizeDate(value).replaceAll("-", "/");
+    }
+
+    function normalizeDateTime(value) {
+      if (!value) return "";
+      if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
+      return String(value);
+    }
+
+    function nowIso() {
+      return new Date().toISOString();
+    }
+
+    function makeId() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+      return `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function escapeAttr(value) {
+      return escapeHtml(value).replaceAll("\n", "&#10;");
+    }
+
+    let toastTimer = null;
+    function showToast(message) {
+      clearTimeout(toastTimer);
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      toastTimer = setTimeout(() => els.toast.classList.remove("show"), 1800);
+    }
+
+    els.addMonthBtn.addEventListener("click", addMonth);
+    els.addMetricBtn.addEventListener("click", addMetric);
+    els.saveBtn.addEventListener("click", saveAll);
+    document.addEventListener("click", () => {
+      closeRangePopovers();
+      closePeriodPopovers();
+    });
+
+    window.PERFORMANCE_CONFIGURATION_API_BASE = apiBase;
+    window.getPerformanceConfigurationHeaders = requestHeaders;
+    window.getPerformanceConfigurationPermissionState = resolvePermissionState;
+    window.reloadPerformanceConfigurationRows = loadConfigurationRows;
+    window.reloadPerformanceConfigurationPeriodOptions = loadPeriodOptions;
+    window.getPerformanceConfigurationRows = apiRows;
+    window.getPerformanceConfigurationDbRows = databaseRows;
+
+    boot();
+  </script>
+</body>
+</html>
