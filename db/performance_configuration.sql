@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS bi.performance_configuration (
 );
 
 ALTER TABLE bi.performance_configuration
-  ADD COLUMN IF NOT EXISTS periods text[] NOT NULL DEFAULT ARRAY[]::text[];
+  ADD COLUMN IF NOT EXISTS periods text[];
 
 COMMENT ON TABLE bi.performance_configuration IS '绩效配置表';
 COMMENT ON COLUMN bi.performance_configuration.create_by IS '创建人后台用户ID';
@@ -39,13 +39,14 @@ COMMENT ON COLUMN bi.performance_configuration.config_type IS '配置类型，�
 COMMENT ON COLUMN bi.performance_configuration.del_flag IS '逻辑删除标记，0 未删除，1 已删除';
 
 UPDATE bi.performance_configuration
-SET periods = ARRAY(
-  SELECT DISTINCT btrim(period_name)
-  FROM unnest(regexp_split_to_array(concat_ws(',', period1, period2), '[,，、/]')) AS period_name
-  WHERE btrim(period_name) <> ''
+SET periods = COALESCE(
+  regexp_split_to_array(
+    NULLIF(regexp_replace(concat_ws(',', NULLIF(period1, ''), NULLIF(period2, '')), '\s+', '', 'g'), ''),
+    '[,，、/]'
+  ),
+  ARRAY[]::text[]
 )
-WHERE periods IS NULL
-   OR cardinality(periods) = 0;
+WHERE periods IS NULL;
 
 -- Period query examples:
 -- WHERE '2026暑' = ANY(periods)
