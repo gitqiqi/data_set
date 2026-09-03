@@ -176,13 +176,9 @@ def has_view_permission(rows: Iterable[Dict[str, Any]]) -> bool:
 def has_edit_permission(rows: Iterable[Dict[str, Any]]) -> bool:
     return any(
         as_smallint(row.get("status"), 0) == 1
-        and permission_type_allows_edit(row.get("permission_type"))
+        and as_smallint(row.get("permission_scope"), -1) == 2
         for row in rows
     )
-
-
-def permission_type_allows_edit(value: Any) -> bool:
-    return value in (None, "") or as_smallint(value, 0) == 1
 
 
 def safe_next_path(value: str) -> str:
@@ -401,7 +397,7 @@ class PerformanceConfigurationRepository:
             OR CAST(admin_id AS text) = %s
             OR employee_id = %s
           )
-        ORDER BY permission_type DESC, update_date DESC
+        ORDER BY permission_scope DESC, update_date DESC
         """
         rows = self.fetch_all(sql, [identifier, identifier, identifier])
         if not rows or not any(password_matches(password, row.get("password")) for row in rows):
@@ -456,7 +452,7 @@ class PerformanceConfigurationRepository:
           is_group_leader
         FROM {self.qualified_admin_table}
         WHERE {' AND '.join(where)}
-        ORDER BY permission_type DESC, update_date DESC
+        ORDER BY permission_scope DESC, update_date DESC
         """
         return [sanitize_admin_row(row) for row in self.fetch_all(sql, params)]
 

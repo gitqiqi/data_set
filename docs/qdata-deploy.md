@@ -47,7 +47,7 @@ BACKEND_PORT=18080
 SESSION_MAX_AGE_SECONDS=28800
 ```
 
-账号来自 `bi.dim_org_admin_user_info_hf`。登录页支持手机号、`admin_id` 或工号登录；密码只在服务端校验，不返回前端。权限规则仍然是 `status = 1` 可查看，`permission_type` 为空或 `1` 可编辑，`0` 只能查看。
+账号来自 `bi.dim_org_admin_user_info_hf`。登录页支持手机号、`admin_id` 或工号登录；密码只在服务端校验，不返回前端。权限规则是 `status = 1` 可查看，`permission_scope = 2` 可编辑，其他权限范围只能查看。
 
 启动：
 

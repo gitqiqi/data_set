@@ -80,8 +80,8 @@ WHERE status = 1
 | 表字段 | 含义 | 当前页面用法 |
 | --- | --- | --- |
 | status | 启用状态 | `1` 才认为有效 |
-| permission_type | 权限类型 | `0` 查看，空值或 `1` 操作 |
-| permission_scope | 权限范围 | 预留给后续数据范围过滤，当前配置页不按部门过滤 |
+| permission_type | 权限类型 | 仅展示/保留，不作为当前配置页操作权限 |
+| permission_scope | 权限范围 | `2` 可操作，其他值只查看 |
 | is_full_view | 是否全量查看 | 作为后续数据范围预留 |
 | admin_id | 后台用户 ID | 用作 `createBy/updateBy` |
 | mobile | 手机号 | 无 adminId 时可用手机号匹配当前用户 |
@@ -90,7 +90,7 @@ WHERE status = 1
 
 ```text
 有匹配且 status = 1 的行：可查看
-匹配行里存在 permission_type 为空或 1：可编辑
+匹配行里存在 permission_scope = 2：可编辑
 无匹配行：不可查看
 ```
 
@@ -118,7 +118,7 @@ window.PERFORMANCE_CONFIGURATION_ADMIN_USER_INFO = [
     role_id: 1,
     role_name: "运营",
     is_full_view: 1,
-    permission_type: 1,
+    permission_type: 0,
     permission_scope: 2,
     admin_organ_ids: "1,2",
     teacher_uid: 90001,

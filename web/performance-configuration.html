@@ -1105,7 +1105,7 @@
       }
 
       const rows = matchedAdminPermissionRows().filter(isActiveAdminPermissionRow);
-      const canEdit = rows.some((row) => permissionTypeAllowsEdit(row.permissionType));
+      const canEdit = rows.some((row) => Number(row.permissionScope) === 2);
       return {
         canView: canEdit || rows.length > 0,
         canEdit,
@@ -1210,10 +1210,6 @@
     function isActiveAdminPermissionRow(row) {
       if (row.status === "" || row.status == null) return true;
       return row.status === true || String(row.status).toLowerCase() === "true" || Number(row.status) === 1;
-    }
-
-    function permissionTypeAllowsEdit(value) {
-      return value === "" || value == null || Number(value) === 1;
     }
 
     function toArray(value) {
