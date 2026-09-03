@@ -27,7 +27,7 @@ start() {
   ensure_python
   if is_running; then
     echo "qData is already running, pid $(cat "${PID_FILE}")"
-    exit 0
+    return 0
   fi
 
   cd "${ROOT_DIR}"
@@ -41,7 +41,7 @@ start() {
   else
     echo "qData failed to start. Last log lines:"
     tail -40 "${LOG_FILE}" 2>/dev/null || true
-    exit 1
+    return 1
   fi
 }
 
@@ -49,22 +49,28 @@ stop() {
   if ! is_running; then
     echo "qData is not running"
     rm -f "${PID_FILE}"
-    exit 0
+    return 0
   fi
 
+  local pid
   pid="$(cat "${PID_FILE}")"
   kill "${pid}"
   for _ in {1..20}; do
     if ! kill -0 "${pid}" 2>/dev/null; then
       rm -f "${PID_FILE}"
       echo "qData stopped"
-      exit 0
+      return 0
     fi
     sleep 0.2
   done
 
   echo "qData did not stop in time; run: kill -9 ${pid}"
-  exit 1
+  return 1
+}
+
+restart() {
+  stop
+  start
 }
 
 status() {
@@ -84,7 +90,7 @@ logs() {
 case "${1:-}" in
   start) start ;;
   stop) stop ;;
-  restart) stop || true; start ;;
+  restart) restart ;;
   status) status ;;
   logs) logs ;;
   *) usage; exit 1 ;;
