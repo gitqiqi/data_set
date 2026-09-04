@@ -55,7 +55,7 @@ SESSION_MAX_AGE_SECONDS=28800
 \i db/performance_configuration.sql
 ```
 
-迁移后 `periods text[]` 是当前查询字段；`period1/period2` 只作为旧数据兼容列保留，保存时由后端按 `periods` 派生写入。服务启动和前端访问不会自动执行建表、字段检查或历史回填。
+迁移后 `period1/period2` 是页面维护字段：普通指标只写 `period1`，`带生数` 写 `period1` 和 `period2`；`periods text[]` 是后端按两个字段合并出的查询字段。服务启动和前端访问不会自动执行建表、字段检查或历史回填。
 
 启动：
 

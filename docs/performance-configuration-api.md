@@ -24,9 +24,9 @@ bi.performance_configuration
 | content | content | 指标口径说明，可为空 |
 | timeStart | time_start | 生效开始日期，可为空 |
 | timeEnd | time_end | 生效结束日期，可为空 |
-| periods | periods | 当前期别数组，`text[]`，例如 `["2026秋", "2026暑"]` |
-| period1 | period1 | 旧期别兼容列，由后端从 `periods` 派生 |
-| period2 | period2 | 旧期别兼容列，由后端从 `periods` 派生 |
+| period1 | period1 | 期别 1；普通指标使用该字段，带生数使用为第一个期别 |
+| period2 | period2 | 期别 2；仅带生数使用，其他指标传空字符串 |
+| periods | periods | 查询汇总数组，由 `period1/period2` 合并生成，例如 `["2026秋", "2026暑"]` |
 | configType | config_type | 类型，没有时传空字符串 |
 | delFlag | del_flag | 逻辑删除，`0` 未删除，`1` 已删除 |
 
@@ -38,7 +38,7 @@ configMonth + module
 
 同一个月份下，一个指标只保留一条配置；期别、类型、时间范围和配置项都作为这条配置的可更新内容。
 
-页面和保存接口都以 `periods` 为准；`period1` 和 `period2` 只保留做旧数据兼容。后续查询使用 `periods`：
+页面维护 `period1/period2`：只有 `带生数` 有两个期别，分别落到 `period1` 和 `period2`；其他指标只落 `period1`，`period2` 为空。`periods` 是后端按 `period1/period2` 合并出的查询数组，后续查询使用 `periods`：
 
 ```sql
 -- 单个期别
@@ -48,7 +48,7 @@ WHERE '2026暑' = ANY(periods)
 WHERE periods && ARRAY['2026暑', '2026秋']
 ```
 
-已有表新增字段和回填逻辑已合并在 [performance_configuration.sql](/Users/cherry/Project/data_set/db/performance_configuration.sql)，只作为手工迁移脚本使用。
+已有表新增 `periods` 字段和历史回填逻辑已合并在 [performance_configuration.sql](/Users/cherry/Project/data_set/db/performance_configuration.sql)，只作为手工迁移脚本使用。
 
 ## 当前临时权限
 
@@ -176,6 +176,8 @@ Content-Type: application/json
         "content": "历史学生上课次数：历史期别课消人次",
         "time_start": "2026-08-01",
         "time_end": "2026-08-31",
+        "period1": "2026秋",
+        "period2": "2026暑",
         "periods": ["2026秋", "2026暑"],
         "config_type": "常规",
         "del_flag": 0
@@ -214,6 +216,8 @@ window.reloadPerformanceConfigurationPeriodOptions();
     "content": "历史学生上课次数：历史期别课消人次",
     "timeStart": "2026-08-01",
     "timeEnd": "2026-08-31",
+    "period1": "2026秋",
+    "period2": "2026暑",
     "periods": ["2026秋", "2026暑"],
     "configType": "常规",
     "delFlag": 0

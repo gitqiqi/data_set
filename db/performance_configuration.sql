@@ -32,9 +32,9 @@ COMMENT ON COLUMN bi.performance_configuration.module IS '配置模块，例如 
 COMMENT ON COLUMN bi.performance_configuration.content IS '前端维护的指标口径说明，按换行保存，可为空';
 COMMENT ON COLUMN bi.performance_configuration.time_start IS '配置适用开始日期';
 COMMENT ON COLUMN bi.performance_configuration.time_end IS '配置适用结束日期';
-COMMENT ON COLUMN bi.performance_configuration.period1 IS '旧期别兼容列，由 periods 派生';
-COMMENT ON COLUMN bi.performance_configuration.period2 IS '旧期别兼容列，由 periods 派生';
-COMMENT ON COLUMN bi.performance_configuration.periods IS '当前期别数组，例如 ARRAY[''2026秋'', ''2026暑'']，用于 ANY/&& 查询';
+COMMENT ON COLUMN bi.performance_configuration.period1 IS '期别 1；普通指标使用该字段，带生数使用为第一个期别';
+COMMENT ON COLUMN bi.performance_configuration.period2 IS '期别 2；仅带生数使用';
+COMMENT ON COLUMN bi.performance_configuration.periods IS '由 period1/period2 汇总的期别数组，例如 ARRAY[''2026秋'', ''2026暑'']，用于 ANY/&& 查询';
 COMMENT ON COLUMN bi.performance_configuration.config_type IS '配置类型，例如 常规，没有类型时为空字符串';
 COMMENT ON COLUMN bi.performance_configuration.del_flag IS '逻辑删除标记，0 未删除，1 已删除';
 

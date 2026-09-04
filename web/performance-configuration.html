@@ -381,6 +381,24 @@
       width: 100%;
     }
 
+    .period-pair {
+      width: 100%;
+      display: grid;
+      gap: 6px;
+    }
+
+    .period-trigger.compact {
+      min-height: 32px;
+      padding: 0 2px;
+    }
+
+    .period-field-label {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
     .period-trigger {
       width: 100%;
       min-height: 38px;
@@ -903,6 +921,7 @@
     const configurationListUrl = `${apiBase}/list`;
     const periodOptionsUrl = `${apiBase}/periodOptions`;
     const adminInfoUrl = `${apiBase}/adminUserInfo`;
+    const dualPeriodModules = new Set(["带生数"]);
 
     const els = {
       saveBtn: document.getElementById("saveBtn"),
@@ -967,7 +986,8 @@
       if (!record) return null;
       const configMonth = monthKey(record.configMonth ?? record.config_month);
       if (!configMonth) return null;
-      const periods = splitPeriods(record.periods);
+      const module = record.module || "";
+      const periodFields = normalizedPeriodFields(record, module);
       return {
         id: record.id || makeId(),
         createBy: record.createBy ?? record.create_by ?? "",
@@ -975,11 +995,13 @@
         createDate: normalizeDateTime(record.createDate ?? record.create_date),
         updateDate: normalizeDateTime(record.updateDate ?? record.update_date),
         configMonth,
-        module: record.module || "",
+        module,
         content: record.content || "",
         timeStart: normalizeDate(record.timeStart ?? record.time_start) || `${configMonth}-01`,
         timeEnd: normalizeDate(record.timeEnd ?? record.time_end) || endOfMonth(configMonth),
-        periods,
+        period1: periodFields.period1,
+        period2: periodFields.period2,
+        periods: periodFields.periods,
         configType: record.configType ?? record.config_type ?? "",
         delFlag: Number(record.delFlag ?? record.del_flag ?? 0)
       };
@@ -1273,17 +1295,25 @@
             event.stopPropagation();
           });
           bindRangeCalendar(row, record.id);
-          row.querySelector(".period-trigger").addEventListener("click", (event) => {
-            event.stopPropagation();
-            closeRangePopovers();
-            closePeriodPopovers(row);
-            row.querySelector(".period-popover").hidden = false;
+          row.querySelectorAll(".period-trigger").forEach((trigger) => {
+            trigger.addEventListener("click", (event) => {
+              event.stopPropagation();
+              const picker = trigger.closest(".period-picker");
+              closeRangePopovers();
+              closePeriodPopovers(picker);
+              picker.querySelector(".period-popover").hidden = false;
+            });
           });
-          row.querySelector(".period-popover").addEventListener("click", (event) => {
-            event.stopPropagation();
+          row.querySelectorAll(".period-popover").forEach((popover) => {
+            popover.addEventListener("click", (event) => {
+              event.stopPropagation();
+            });
           });
           row.querySelectorAll("[data-period]").forEach((option) => {
-            option.addEventListener("click", () => togglePeriod(record.id, option.dataset.period, option));
+            option.addEventListener("click", (event) => {
+              event.stopPropagation();
+              selectPeriod(record.id, option.dataset.periodField, option.dataset.period, option);
+            });
           });
           row.querySelector(".delete-row").addEventListener("click", () => softDeleteRecord(record.id));
         }
@@ -1302,30 +1332,44 @@
     }
 
     function periodControl(record, readonly = false) {
+      if (isDualPeriodRecord(record)) {
+        return `
+          <div class="period-pair">
+            ${periodSlotControl(record, "period1", "期别1", readonly)}
+            ${periodSlotControl(record, "period2", "期别2", readonly)}
+          </div>
+        `;
+      }
+      return periodSlotControl(record, "period1", "", readonly);
+    }
+
+    function periodSlotControl(record, field, label = "", readonly = false) {
+      const compactClass = label ? " compact" : "";
       return `
-        <div class="period-picker">
-          <button class="period-trigger" type="button"${readonly ? " disabled" : ""}>
-            <span class="period-tags">${periodTagMarkup(record)}</span>
+        <div class="period-picker" data-period-field="${escapeAttr(field)}">
+          <button class="period-trigger${compactClass}" type="button"${readonly ? " disabled" : ""}>
+            ${label ? `<span class="period-field-label">${escapeHtml(label)}</span>` : ""}
+            <span class="period-tags">${periodTagMarkup(record, field)}</span>
           </button>
-          <div class="period-popover" hidden>${periodOptionMarkup(record, readonly)}</div>
+          <div class="period-popover" hidden>${periodOptionMarkup(record, field, readonly)}</div>
         </div>
       `;
     }
 
-    function periodTagMarkup(record) {
-      const selected = periodValues(record);
+    function periodTagMarkup(record, field = "period1") {
+      const selected = periodFieldValues(record, field);
       if (!selected.length) return '<span class="period-placeholder">选择期别</span>';
       return selected
         .map((period) => `<span class="period-tag" title="${escapeAttr(formatPeriodLabel(period))}">${escapeHtml(formatPeriodLabel(period))}</span>`)
         .join("");
     }
 
-    function periodOptionMarkup(record, readonly = false) {
-      const selected = periodValues(record);
+    function periodOptionMarkup(record, field = "period1", readonly = false) {
+      const selected = periodFieldValues(record, field);
       return periodOptions().map((period) => {
         const selectedClass = selected.includes(period) ? " selected" : "";
         return `
-          <button class="period-option${selectedClass}" type="button" data-period="${escapeAttr(period)}"${readonly ? " disabled" : ""}>
+          <button class="period-option${selectedClass}" type="button" data-period="${escapeAttr(period)}" data-period-field="${escapeAttr(field)}"${readonly ? " disabled" : ""}>
             <span class="period-check" aria-hidden="true"></span>
             <span>${escapeHtml(formatPeriodLabel(period))}</span>
           </button>
@@ -1334,8 +1378,37 @@
     }
 
     function periodValues(record) {
-      const periods = splitPeriods(record.periods);
-      return unique(periods).sort(sortPeriods);
+      return combinedPeriodValues(record.period1, isDualPeriodRecord(record) ? record.period2 : "");
+    }
+
+    function periodFieldValues(record, field = "period1") {
+      return splitPeriods(record?.[field]).slice(0, 1);
+    }
+
+    function combinedPeriodValues(period1, period2 = "") {
+      return unique([normalizePeriodValue(period1), normalizePeriodValue(period2)].filter(Boolean)).sort(sortPeriods);
+    }
+
+    function normalizedPeriodFields(record, moduleName = "") {
+      const dual = isDualPeriodModule(moduleName);
+      const rawPeriod1 = splitPeriods(record.period1 ?? record.period_1);
+      const rawPeriod2 = splitPeriods(record.period2 ?? record.period_2);
+      const fallbackPeriods = splitPeriods(record.periods);
+      const period1 = rawPeriod1[0] || fallbackPeriods[0] || "";
+      const period2 = dual ? (rawPeriod2[0] || rawPeriod1[1] || fallbackPeriods.find((item) => item !== period1) || "") : "";
+      return {
+        period1,
+        period2,
+        periods: combinedPeriodValues(period1, period2)
+      };
+    }
+
+    function isDualPeriodRecord(record) {
+      return isDualPeriodModule(record?.module);
+    }
+
+    function isDualPeriodModule(moduleName) {
+      return dualPeriodModules.has(String(moduleName || "").trim());
     }
 
     function periodOptions() {
@@ -1579,6 +1652,9 @@
       const isTimeField = field === "timeStart" || field === "timeEnd";
 
       record[field] = value;
+      if (field === "module") {
+        syncRecordPeriods(record);
+      }
 
       if (field === "timeStart" && record.timeEnd && record.timeEnd < value) {
         record.timeEnd = value;
@@ -1607,38 +1683,39 @@
       if (end && end.value !== record.timeEnd) end.value = record.timeEnd;
     }
 
-    function togglePeriod(id, period, sourceElement = null) {
+    function selectPeriod(id, field, period, sourceElement = null) {
       if (!requireEditPermission()) return;
       const record = records.find((item) => item.id === id);
       if (!record) return;
+      const targetField = field === "period2" && isDualPeriodRecord(record) ? "period2" : "period1";
       const normalized = normalizePeriodValue(period);
-      const selected = periodValues(record);
-      const next = selected.includes(normalized)
-        ? selected.filter((item) => item !== normalized)
-        : [...selected, normalized].sort(sortPeriods);
-      setPeriodValues(record, next);
+      record[targetField] = periodFieldValues(record, targetField).includes(normalized) ? "" : normalized;
+      syncRecordPeriods(record);
       record.updateBy = operator();
       record.updateDate = nowIso();
       syncPeriodControl(sourceElement, record);
+      sourceElement?.closest(".period-popover")?.setAttribute("hidden", "");
     }
 
     function syncPeriodControl(sourceElement, record) {
       const row = sourceElement?.closest(".metric-row");
       if (!row) return;
-      const tags = row.querySelector(".period-tags");
-      const popover = row.querySelector(".period-popover");
-      if (tags) tags.innerHTML = periodTagMarkup(record);
-      if (popover) {
-        const selected = periodValues(record);
-        popover.querySelectorAll("[data-period]").forEach((option) => {
+      row.querySelectorAll(".period-picker").forEach((picker) => {
+        const field = picker.dataset.periodField || "period1";
+        const tags = picker.querySelector(".period-tags");
+        const selected = periodFieldValues(record, field);
+        if (tags) tags.innerHTML = periodTagMarkup(record, field);
+        picker.querySelectorAll("[data-period]").forEach((option) => {
           option.classList.toggle("selected", selected.includes(option.dataset.period));
         });
-      }
+      });
     }
 
-    function setPeriodValues(record, values) {
-      const selected = unique(values.map(normalizePeriodValue)).sort(sortPeriods);
-      record.periods = selected;
+    function syncRecordPeriods(record) {
+      if (!isDualPeriodRecord(record)) record.period2 = "";
+      record.period1 = periodFieldValues(record, "period1")[0] || "";
+      record.period2 = isDualPeriodRecord(record) ? (periodFieldValues(record, "period2")[0] || "") : "";
+      record.periods = periodValues(record);
     }
 
     function addMonth() {
@@ -1675,6 +1752,8 @@
         configMonth: monthKey(targetMonth),
         timeStart: shiftDate(record.timeStart, monthDelta) || `${targetMonth}-01`,
         timeEnd: shiftDate(record.timeEnd, monthDelta) || endOfMonth(targetMonth),
+        period1: periodFieldValues(record, "period1")[0] || "",
+        period2: isDualPeriodRecord(record) ? (periodFieldValues(record, "period2")[0] || "") : "",
         periods: periodValues(record),
         delFlag: 0
       }));
@@ -1734,6 +1813,8 @@
         content: previousContentForModule(month, "") || "",
         timeStart: `${monthKey(month)}-01`,
         timeEnd: endOfMonth(month),
+        period1: "",
+        period2: "",
         periods: [],
         configType: "",
         delFlag: 0
@@ -1777,6 +1858,7 @@
           record.updateBy = operator();
           record.updateDate = now;
           record.configMonth = monthKey(activeMonth);
+          syncRecordPeriods(record);
         }
       });
       render();
@@ -1805,6 +1887,8 @@
         content: record.content,
         timeStart: record.timeStart,
         timeEnd: record.timeEnd,
+        period1: periodFieldValues(record, "period1")[0] || "",
+        period2: isDualPeriodRecord(record) ? (periodFieldValues(record, "period2")[0] || "") : "",
         periods: periodValues(record),
         configType: record.configType,
         delFlag: Number(record.delFlag || 0)

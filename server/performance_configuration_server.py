@@ -151,12 +151,28 @@ def normalize_period_list(value: Any) -> List[str]:
     return list(dict.fromkeys(values))
 
 
-def legacy_period_columns(periods: List[str]) -> Tuple[str, str]:
-    if len(periods) <= 1:
-        return (periods[0] if periods else "", "")
-    if len(periods) == 2:
-        return periods[0], periods[1]
-    return ",".join(periods), ""
+def is_dual_period_module(module: str) -> bool:
+    return module.strip() == "带生数"
+
+
+def normalize_period_fields(row: Dict[str, Any], module: str) -> Tuple[str, str, List[str]]:
+    period1_values = normalize_period_list(first_value(row, "period1", "period_1", default=""))
+    period2_values = normalize_period_list(first_value(row, "period2", "period_2", default=""))
+    fallback_values = normalize_period_list(first_value(row, "periods", default=[]))
+
+    period1 = period1_values[0] if period1_values else (fallback_values[0] if fallback_values else "")
+    period2 = ""
+    if is_dual_period_module(module):
+        period2 = (
+            period2_values[0]
+            if period2_values
+            else (period1_values[1] if len(period1_values) > 1 else "")
+        )
+        if not period2:
+            period2 = next((period for period in fallback_values if period != period1), "")
+
+    periods = normalize_period_list([period1, period2])
+    return period1, period2, periods
 
 
 def password_matches(input_password: str, stored_password: Any) -> bool:
@@ -538,8 +554,7 @@ class PerformanceConfigurationRepository:
         create_by = as_int(first_value(row, "createBy", "create_by", default=None)) or operator_id
         update_by = as_int(first_value(row, "updateBy", "update_by", default=None)) or operator_id
         create_date = parse_datetime(first_value(row, "createDate", "create_date", default=None))
-        periods = normalize_period_list(first_value(row, "periods", default=[]))
-        period1, period2 = legacy_period_columns(periods)
+        period1, period2, periods = normalize_period_fields(row, module)
 
         return (
             create_by,
