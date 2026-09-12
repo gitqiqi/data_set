@@ -2501,12 +2501,6 @@
       const options = renewalTargetAvailablePeriodOptions.length
         ? renewalTargetAvailablePeriodOptions
         : renewalTargetPeriodOptions;
-      if (!addRenewalPeriodIds.length) {
-        const activeOption = renewalTargetPeriodOptionById(activeRenewalPeriodId);
-        addRenewalPeriodIds = activeOption?.periodIds?.length
-          ? [...activeOption.periodIds]
-          : [];
-      }
       els.addRenewalPeriodPopover.hidden = false;
       els.addRenewalPeriodPopover.innerHTML = renewalTargetAddPeriodPickerMarkup(options);
       els.addRenewalPeriodPopover.querySelectorAll("[data-add-renewal-period-id]").forEach((button) => {
@@ -2629,10 +2623,7 @@
         showToast("暂无可选期次");
         return;
       }
-      const activeOption = renewalTargetPeriodOptionById(activeRenewalPeriodId);
-      addRenewalPeriodIds = activeOption?.periodIds?.length
-        ? [...activeOption.periodIds]
-        : [];
+      addRenewalPeriodIds = [];
       addRenewalPeriodPickerOpen = !addRenewalPeriodPickerOpen;
       closeMonthPicker();
       closeRenewalTargetPicker(false);
