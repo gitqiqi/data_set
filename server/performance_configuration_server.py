@@ -15,6 +15,7 @@ import sys
 import time
 import traceback
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -34,6 +35,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 WEB_ROOT = PROJECT_ROOT / "web"
 ENV_FILE = PROJECT_ROOT / ".env"
 IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+PERFORMANCE_MODULE_KEY = "performance"
+RENEWAL_TARGET_MODULE_KEY = "renewalTarget"
+CONFIG_TYPE_MODULES = {"带生数"}
+CONFIG_TYPE_VALUES = {"常规", "招生季"}
 
 
 def load_env_file(path: Path) -> None:
@@ -126,9 +131,45 @@ def as_int(value: Any) -> Optional[int]:
     return int(text)
 
 
+def renewal_period_group_ids(value: Any, fallback_period_id: Any = None) -> List[int]:
+    items = value if isinstance(value, (list, tuple, set)) else re.split(r"\+", str(value or ""))
+    ids: List[int] = []
+    for item in items:
+        period_id = as_int(item)
+        if period_id is not None and period_id not in ids:
+            ids.append(period_id)
+    if not ids:
+        fallback = as_int(fallback_period_id)
+        if fallback is not None:
+            ids.append(fallback)
+    return sorted(ids, reverse=True)
+
+
+def normalize_renewal_period_group_key(value: Any, fallback_period_id: Any = None) -> str:
+    return "+".join(str(period_id) for period_id in renewal_period_group_ids(value, fallback_period_id))
+
+
 def as_smallint(value: Any, default: int = 0) -> int:
     number = as_int(value)
     return default if number is None else number
+
+
+def parse_decimal(value: Any) -> Optional[Decimal]:
+    if value in (None, ""):
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+
+    is_percent = text.endswith("%")
+    if is_percent:
+        text = text[:-1].strip()
+
+    try:
+        number = Decimal(text)
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError(f"数字格式不正确: {value}") from exc
+    return number / Decimal("100") if is_percent else number
 
 
 def first_value(row: Dict[str, Any], *keys: str, default: Any = "") -> Any:
@@ -136,6 +177,27 @@ def first_value(row: Dict[str, Any], *keys: str, default: Any = "") -> Any:
         if key in row and row[key] is not None:
             return row[key]
     return default
+
+
+def request_module_key(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return PERFORMANCE_MODULE_KEY
+    raw_value = first_value(
+        payload,
+        "moduleKey",
+        "module_key",
+        "configurationModule",
+        "configuration_module",
+        default=None,
+    )
+    if raw_value is None or not str(raw_value).strip():
+        return PERFORMANCE_MODULE_KEY
+    text = str(raw_value).strip()
+    if text in {RENEWAL_TARGET_MODULE_KEY, "renewal_target", "renewal-target"}:
+        return RENEWAL_TARGET_MODULE_KEY
+    if text in {PERFORMANCE_MODULE_KEY, "performance_configuration", "performance-configuration"}:
+        return PERFORMANCE_MODULE_KEY
+    return text
 
 
 def normalize_period_list(value: Any) -> List[str]:
@@ -160,16 +222,20 @@ def normalize_period_fields(row: Dict[str, Any], module: str) -> Tuple[str, str,
     period2_values = normalize_period_list(first_value(row, "period2", "period_2", default=""))
     fallback_values = normalize_period_list(first_value(row, "periods", default=[]))
 
+    if not is_dual_period_module(module):
+        periods = normalize_period_list([*fallback_values, *period1_values])
+        period1 = periods[0] if periods else ""
+        return period1, "", periods
+
     period1 = period1_values[0] if period1_values else (fallback_values[0] if fallback_values else "")
     period2 = ""
-    if is_dual_period_module(module):
-        period2 = (
-            period2_values[0]
-            if period2_values
-            else (period1_values[1] if len(period1_values) > 1 else "")
-        )
-        if not period2:
-            period2 = next((period for period in fallback_values if period != period1), "")
+    period2 = (
+        period2_values[0]
+        if period2_values
+        else (period1_values[1] if len(period1_values) > 1 else "")
+    )
+    if not period2:
+        period2 = next((period for period in fallback_values if period != period1), "")
 
     periods = normalize_period_list([period1, period2])
     return period1, period2, periods
@@ -267,14 +333,24 @@ class PerformanceConfigurationRepository:
     def __init__(self) -> None:
         load_env_file(ENV_FILE)
         self.schema = require_identifier(env("HOLO_SCHEMA", "bi"), "bi")
-        self.table = require_identifier(env("HOLO_TABLE", "performance_configuration"), "performance_configuration")
-        self.qualified_table = f"{self.schema}.{self.table}"
+        self.performance_table = require_identifier(env("HOLO_TABLE", "performance_configuration"), "performance_configuration")
+        self.renewal_target_table = require_identifier(
+            env("HOLO_RENEWAL_TARGET_TABLE", "bi_renewal_target_rate"),
+            "bi_renewal_target_rate",
+        )
+        self.table = self.performance_table
+        self.qualified_performance_table = f"{self.schema}.{self.performance_table}"
+        self.qualified_renewal_target_table = f"{self.schema}.{self.renewal_target_table}"
+        self.qualified_table = self.qualified_performance_table
         self.admin_table = require_identifier(
             env("HOLO_ADMIN_TABLE", "dim_org_admin_user_info_hf"),
             "dim_org_admin_user_info_hf",
         )
         self.qualified_admin_table = f"{self.schema}.{self.admin_table}"
         self._pool: Optional[ThreadedConnectionPool] = None
+        self._has_sort_order_column: Dict[str, bool] = {}
+        self._has_del_flag_column: Dict[str, bool] = {}
+        self._has_period_group_key_column: Dict[str, bool] = {}
 
     def pool(self) -> ThreadedConnectionPool:
         if self._pool is None:
@@ -293,9 +369,72 @@ class PerformanceConfigurationRepository:
     def with_connection(self) -> ConnectionContext:
         return ConnectionContext(self.pool())
 
+    def has_sort_order_column(self, table: Optional[str] = None) -> bool:
+        table_name = table or self.performance_table
+        if table_name in self._has_sort_order_column:
+            return self._has_sort_order_column[table_name]
+
+        sql = """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = %s
+          AND table_name = %s
+          AND column_name = 'sort_order'
+        LIMIT 1
+        """
+        self._has_sort_order_column[table_name] = bool(self.fetch_all(sql, [self.schema, table_name]))
+        return self._has_sort_order_column[table_name]
+
+    def has_del_flag_column(self, table: Optional[str] = None) -> bool:
+        table_name = table or self.performance_table
+        if table_name in self._has_del_flag_column:
+            return self._has_del_flag_column[table_name]
+
+        sql = """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = %s
+          AND table_name = %s
+          AND column_name = 'del_flag'
+        LIMIT 1
+        """
+        self._has_del_flag_column[table_name] = bool(self.fetch_all(sql, [self.schema, table_name]))
+        return self._has_del_flag_column[table_name]
+
+    def has_period_group_key_column(self, table: Optional[str] = None) -> bool:
+        table_name = table or self.performance_table
+        if table_name in self._has_period_group_key_column:
+            return self._has_period_group_key_column[table_name]
+
+        sql = """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = %s
+          AND table_name = %s
+          AND column_name = 'renewal_period_group_key'
+        LIMIT 1
+        """
+        self._has_period_group_key_column[table_name] = bool(self.fetch_all(sql, [self.schema, table_name]))
+        return self._has_period_group_key_column[table_name]
+
     def list_configurations(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        module_key = request_module_key(payload)
+        if module_key == RENEWAL_TARGET_MODULE_KEY:
+            return self.list_renewal_targets(payload)
+        if module_key == PERFORMANCE_MODULE_KEY:
+            return self.list_performance_configurations(payload)
+        raise ValueError(f"不支持的配置模块: {module_key}")
+
+    def list_performance_configurations(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         config_month = normalize_month(first_value(payload, "configMonth", "config_month", default=""))
         del_flag = first_value(payload, "delFlag", "del_flag", default=0)
+        has_sort_order = self.has_sort_order_column(self.performance_table)
+        sort_order_select = "sort_order" if has_sort_order else "0 AS sort_order"
+        order_by = (
+            "config_month DESC, sort_order ASC NULLS LAST, module ASC"
+            if has_sort_order
+            else "config_month DESC, module ASC"
+        )
 
         where = ["del_flag = %s"]
         params: List[Any] = [as_smallint(del_flag, 0)]
@@ -319,10 +458,11 @@ class PerformanceConfigurationRepository:
           period2,
           periods,
           config_type,
+          {sort_order_select},
           del_flag
-        FROM {self.qualified_table}
+        FROM {self.qualified_performance_table}
         WHERE {' AND '.join(where)}
-        ORDER BY config_month DESC, module ASC
+        ORDER BY {order_by}
         """
 
         rows = self.fetch_all(sql, params)
@@ -332,6 +472,169 @@ class PerformanceConfigurationRepository:
             "months": months,
             "activeMonth": config_month or (months[0] if months else ""),
         }
+
+    def list_renewal_targets(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        renewal_period_id = as_int(first_value(payload, "renewalPeriodId", "renewal_period_id", default=None))
+        period_options = self.renewal_period_options(only_configured=True)
+        available_period_options = self.renewal_period_options()
+        has_sort_order = self.has_sort_order_column(self.renewal_target_table)
+        has_del_flag = self.has_del_flag_column(self.renewal_target_table)
+        has_period_group_key = self.has_period_group_key_column(self.renewal_target_table)
+        sort_order_select = "target.sort_order" if has_sort_order else "0 AS sort_order"
+        sort_order_order = "target.sort_order ASC NULLS LAST,\n                 " if has_sort_order else ""
+        period_group_key_select = (
+            "COALESCE(NULLIF(CAST(target.renewal_period_group_key AS text), ''), "
+            "CAST(target.renewal_period_id AS text))"
+            if has_period_group_key
+            else "CAST(target.renewal_period_id AS text)"
+        )
+        where = ["target.renewal_period_id IS NOT NULL"]
+        params: List[Any] = []
+        if has_del_flag:
+            where.insert(0, "COALESCE(target.del_flag, 0) = 0")
+        if renewal_period_id is not None:
+            where.append("period.id = %s")
+            params.append(renewal_period_id)
+        where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+
+        sql = f"""
+        SELECT
+          period.id AS renewal_period_id,
+          period.period_name AS renewal_period_name,
+          {period_group_key_select} AS renewal_period_group_key,
+          target.grade,
+          COALESCE(target.class_mode, '') AS class_mode,
+          COALESCE(target.class_version, '') AS class_version,
+          target.all_rate,
+          target.s_rate,
+          target.a_rate,
+          target.b_rate,
+          target.c_rate,
+          target.d_rate,
+          {sort_order_select},
+          {"target.del_flag" if has_del_flag else "0 AS del_flag"}
+        FROM (
+          SELECT
+            id,
+            max(period_name) AS period_name
+          FROM book.db_renewal_period
+          WHERE id IS NOT NULL
+          GROUP BY id
+        ) period
+        LEFT JOIN {self.qualified_renewal_target_table} target
+          ON target.renewal_period_id = period.id
+        {where_sql}
+        ORDER BY period.id DESC NULLS LAST,
+                 {sort_order_order}
+                 target.grade ASC NULLS LAST,
+                 target.class_mode ASC NULLS LAST,
+                 target.class_version ASC NULLS LAST
+        """
+
+        rows = self.fetch_all(sql, params)
+        period_ids = [option["id"] for option in period_options]
+        return {
+            "moduleKey": RENEWAL_TARGET_MODULE_KEY,
+            "tableName": self.qualified_renewal_target_table,
+            "records": rows,
+            "renewalPeriodIds": period_ids,
+            "renewalPeriodOptions": period_options,
+            "availableRenewalPeriodOptions": available_period_options,
+            "activeRenewalPeriodId": renewal_period_id
+            or (period_ids[0] if period_ids else (available_period_options[0]["id"] if available_period_options else "")),
+        }
+
+    def renewal_period_options(self, only_configured: bool = False) -> List[Dict[str, Any]]:
+        if not only_configured:
+            sql = """
+            SELECT
+              period.id,
+              max(period.period_name) AS period_name
+            FROM book.db_renewal_period period
+            WHERE period.id IS NOT NULL
+            GROUP BY period.id
+            ORDER BY period.id DESC
+            """
+            rows = self.fetch_all(sql, [])
+            return [
+                {
+                    "id": row["id"],
+                    "periodIds": [row["id"]],
+                    "periodGroupKey": str(row["id"]),
+                    "periodName": str(row.get("period_name") or row["id"]),
+                }
+                for row in rows
+            ]
+
+        has_del_flag = self.has_del_flag_column(self.renewal_target_table)
+        has_period_group_key = self.has_period_group_key_column(self.renewal_target_table)
+        group_key_select = (
+            "COALESCE(NULLIF(CAST(target.renewal_period_group_key AS text), ''), "
+            "CAST(target.renewal_period_id AS text))"
+            if has_period_group_key
+            else "CAST(target.renewal_period_id AS text)"
+        )
+        where = ["target.renewal_period_id IS NOT NULL"]
+        if has_del_flag:
+            where.insert(0, "COALESCE(target.del_flag, 0) = 0")
+
+        sql = f"""
+        SELECT
+          target.renewal_period_id,
+          {group_key_select} AS period_group_key,
+          max(period.period_name) AS period_name
+        FROM {self.qualified_renewal_target_table} target
+        JOIN book.db_renewal_period period
+          ON period.id = target.renewal_period_id
+        WHERE {' AND '.join(where)}
+        GROUP BY target.renewal_period_id, {group_key_select}
+        ORDER BY target.renewal_period_id DESC
+        """
+        rows = self.fetch_all(sql, [])
+        period_name_map = {
+            str(option["id"]): str(option["periodName"])
+            for option in self.renewal_period_options(only_configured=False)
+        }
+        groups: Dict[str, Dict[str, Any]] = {}
+        for row in rows:
+            period_id = as_int(row.get("renewal_period_id"))
+            if period_id is None:
+                continue
+            group_key = normalize_renewal_period_group_key(
+                row.get("period_group_key"),
+                period_id,
+            )
+            if not group_key:
+                continue
+            group = groups.setdefault(
+                group_key,
+                {
+                    "id": group_key,
+                    "periodGroupKey": group_key,
+                    "periodIds": renewal_period_group_ids(group_key, period_id),
+                    "periodName": "",
+                },
+            )
+            group["periodIds"] = renewal_period_group_ids(
+                [*group["periodIds"], period_id],
+                period_id,
+            )
+
+        options = []
+        for group_key, group in groups.items():
+            names = [
+                period_name_map.get(str(period_id), str(period_id))
+                for period_id in group["periodIds"]
+            ]
+            group["periodName"] = "+".join(names)
+            options.append(group)
+        options.sort(
+            key=lambda option: (
+                -(max(option["periodIds"]) if option["periodIds"] else 0),
+                option["periodName"],
+            )
+        )
+        return options
 
     def period_options(self) -> List[Dict[str, str]]:
         sql = """
@@ -451,9 +754,16 @@ class PerformanceConfigurationRepository:
         return [sanitize_admin_row(row) for row in self.fetch_all(sql, params)]
 
     def batch_upsert(self, payload: Any, operator_id: Optional[int]) -> Dict[str, Any]:
+        module_key = request_module_key(payload)
+        if module_key == RENEWAL_TARGET_MODULE_KEY:
+            return self.batch_upsert_renewal_targets(payload)
+        if module_key != PERFORMANCE_MODULE_KEY:
+            raise ValueError(f"不支持的配置模块: {module_key}")
+
         rows = payload if isinstance(payload, list) else payload.get("rows") or payload.get("records") or payload.get("data") or []
         if not isinstance(rows, list):
             raise ValueError("保存参数必须是数组")
+        has_sort_order = self.has_sort_order_column(self.performance_table)
 
         normalized_rows = [
             self.normalize_configuration_row(raw, operator_id)
@@ -463,42 +773,83 @@ class PerformanceConfigurationRepository:
         if not normalized_rows:
             return {"saved": 0}
 
-        template = (
-            "(%s, %s, COALESCE(%s, now()), now(), %s, %s, %s, %s, %s, "
-            "COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, ARRAY[]::text[]), "
-            "COALESCE(%s, ''), COALESCE(%s, 0))"
-        )
-        sql = f"""
-        INSERT INTO {self.qualified_table} (
-          create_by,
-          update_by,
-          create_date,
-          update_date,
-          config_month,
-          module,
-          content,
-          time_start,
-          time_end,
-          period1,
-          period2,
-          periods,
-          config_type,
-          del_flag
-        )
-        VALUES %s
-        ON CONFLICT (config_month, module)
-        DO UPDATE SET
-          update_by = EXCLUDED.update_by,
-          update_date = now(),
-          content = EXCLUDED.content,
-          time_start = EXCLUDED.time_start,
-          time_end = EXCLUDED.time_end,
-          period1 = EXCLUDED.period1,
-          period2 = EXCLUDED.period2,
-          periods = EXCLUDED.periods,
-          config_type = EXCLUDED.config_type,
-          del_flag = EXCLUDED.del_flag
-        """
+        if has_sort_order:
+            template = (
+                "(%s, %s, COALESCE(%s, now()), now(), %s, %s, %s, %s, %s, "
+                "COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, ARRAY[]::text[]), "
+                "COALESCE(%s, ''), COALESCE(%s, 0), COALESCE(%s, 0))"
+            )
+            sql = f"""
+            INSERT INTO {self.qualified_performance_table} (
+              create_by,
+              update_by,
+              create_date,
+              update_date,
+              config_month,
+              module,
+              content,
+              time_start,
+              time_end,
+              period1,
+              period2,
+              periods,
+              config_type,
+              sort_order,
+              del_flag
+            )
+            VALUES %s
+            ON CONFLICT (config_month, module)
+            DO UPDATE SET
+              update_by = EXCLUDED.update_by,
+              update_date = now(),
+              content = EXCLUDED.content,
+              time_start = EXCLUDED.time_start,
+              time_end = EXCLUDED.time_end,
+              period1 = EXCLUDED.period1,
+              period2 = EXCLUDED.period2,
+              periods = EXCLUDED.periods,
+              config_type = EXCLUDED.config_type,
+              sort_order = EXCLUDED.sort_order,
+              del_flag = EXCLUDED.del_flag
+            """
+        else:
+            normalized_rows = [row[:-2] + (row[-1],) for row in normalized_rows]
+            template = (
+                "(%s, %s, COALESCE(%s, now()), now(), %s, %s, %s, %s, %s, "
+                "COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, ARRAY[]::text[]), "
+                "COALESCE(%s, ''), COALESCE(%s, 0))"
+            )
+            sql = f"""
+            INSERT INTO {self.qualified_performance_table} (
+              create_by,
+              update_by,
+              create_date,
+              update_date,
+              config_month,
+              module,
+              content,
+              time_start,
+              time_end,
+              period1,
+              period2,
+              periods,
+              config_type,
+              del_flag
+            )
+            VALUES %s
+            ON CONFLICT (config_month, module)
+            DO UPDATE SET
+              update_by = EXCLUDED.update_by,
+              update_date = now(),
+              content = EXCLUDED.content,
+              time_start = EXCLUDED.time_start,
+              time_end = EXCLUDED.time_end,
+              period1 = EXCLUDED.period1,
+              period2 = EXCLUDED.period2,
+              periods = EXCLUDED.periods,
+              config_type = EXCLUDED.config_type,
+              del_flag = EXCLUDED.del_flag
+            """
 
         with self.with_connection() as conn:
             with conn.cursor() as cursor:
@@ -515,7 +866,125 @@ class PerformanceConfigurationRepository:
             "saved": len(normalized_rows),
         }
 
+    def batch_upsert_renewal_targets(self, payload: Any) -> Dict[str, Any]:
+        rows = payload if isinstance(payload, list) else payload.get("rows") or payload.get("records") or payload.get("data") or []
+        if not isinstance(rows, list):
+            raise ValueError("续报目标保存参数必须是数组")
+
+        normalized_rows = [
+            self.normalize_renewal_target_row(raw)
+            for raw in rows
+            if isinstance(raw, dict)
+        ]
+        if not normalized_rows:
+            return {"saved": 0, "deleted": 0}
+
+        has_sort_order = self.has_sort_order_column(self.renewal_target_table)
+        has_period_group_key = self.has_period_group_key_column(self.renewal_target_table)
+        sort_order_set = ", sort_order = %s" if has_sort_order else ""
+        sort_order_column = ", sort_order" if has_sort_order else ""
+        sort_order_value = ", %s" if has_sort_order else ""
+        period_group_key_set = ", renewal_period_group_key = %s" if has_period_group_key else ""
+        period_group_key_column = ", renewal_period_group_key" if has_period_group_key else ""
+        period_group_key_value = ", %s" if has_period_group_key else ""
+        has_del_flag = self.has_del_flag_column(self.renewal_target_table)
+        del_flag_set = ", del_flag = 0" if has_del_flag else ""
+        del_flag_column = ", del_flag" if has_del_flag else ""
+        del_flag_value = ", 0" if has_del_flag else ""
+        group_key_where = "renewal_period_group_key = %s AND " if has_period_group_key else ""
+        update_sql = f"""
+        UPDATE {self.qualified_renewal_target_table}
+        SET
+          renewal_period_id = %s,
+          grade = %s,
+          class_mode = %s,
+          class_version = %s,
+          all_rate = %s,
+          s_rate = %s,
+          a_rate = %s,
+          b_rate = %s,
+          c_rate = %s,
+          d_rate = %s
+          {period_group_key_set}
+          {sort_order_set}
+          {del_flag_set}
+        WHERE {group_key_where}renewal_period_id = %s
+          AND grade = %s
+          AND COALESCE(class_mode, '') = %s
+          AND COALESCE(class_version, '') = %s
+        """
+        insert_sql = f"""
+        INSERT INTO {self.qualified_renewal_target_table} (
+          renewal_period_id,
+          grade,
+          class_mode,
+          class_version,
+          all_rate,
+          s_rate,
+          a_rate,
+          b_rate,
+          c_rate,
+          d_rate
+          {period_group_key_column}
+          {sort_order_column}
+          {del_flag_column}
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s{period_group_key_value}{sort_order_value}{del_flag_value})
+        """
+        delete_sql = None
+        if has_del_flag:
+            delete_sql = f"""
+            UPDATE {self.qualified_renewal_target_table}
+            SET del_flag = 1
+            WHERE {group_key_where}renewal_period_id = %s
+              AND grade = %s
+              AND COALESCE(class_mode, '') = %s
+              AND COALESCE(class_version, '') = %s
+              AND COALESCE(del_flag, 0) = 0
+            """
+
+        saved = 0
+        deleted = 0
+        with self.with_connection() as conn:
+            with conn.cursor() as cursor:
+                for row in normalized_rows:
+                    values = row["values"]
+                    key = ((row["period_group_key"],) if has_period_group_key else ()) + row["key"]
+                    original_key = (
+                        ((row["original_period_group_key"],) if has_period_group_key else ())
+                        + (row["original_key"] or row["key"])
+                    )
+                    if row["deleted"]:
+                        if delete_sql is None:
+                            raise ValueError("续报目标表缺少 del_flag 字段，请先执行 db/renewal_target_rate.sql")
+                        cursor.execute(delete_sql, original_key)
+                        deleted += cursor.rowcount
+                        continue
+
+                    write_values = values
+                    if has_period_group_key:
+                        write_values += (row["period_group_key"],)
+                    if has_sort_order:
+                        write_values += (row["sort_order"],)
+                    cursor.execute(update_sql, write_values + original_key)
+                    affected = cursor.rowcount
+                    if affected == 0 and original_key != key:
+                        cursor.execute(update_sql, write_values + key)
+                        affected = cursor.rowcount
+                    if affected == 0:
+                        cursor.execute(insert_sql, write_values)
+                    saved += 1
+            conn.commit()
+
+        return {"saved": saved, "deleted": deleted}
+
     def logical_delete(self, payload: Dict[str, Any], operator_id: Optional[int]) -> Dict[str, int]:
+        module_key = request_module_key(payload)
+        if module_key == RENEWAL_TARGET_MODULE_KEY:
+            return self.delete_renewal_target(payload)
+        if module_key != PERFORMANCE_MODULE_KEY:
+            raise ValueError(f"不支持的配置模块: {module_key}")
+
         record_id = as_int(first_value(payload, "id", default=None))
         config_month = normalize_month(first_value(payload, "configMonth", "config_month", default=""))
         module = str(first_value(payload, "module", default="")).strip()
@@ -545,6 +1014,32 @@ class PerformanceConfigurationRepository:
             conn.commit()
         return {"deleted": affected}
 
+    def delete_renewal_target(self, payload: Dict[str, Any]) -> Dict[str, int]:
+        row = self.normalize_renewal_target_row(payload)
+        has_period_group_key = self.has_period_group_key_column(self.renewal_target_table)
+        key = (
+            ((row["original_period_group_key"],) if has_period_group_key else ())
+            + (row["original_key"] or row["key"])
+        )
+        if not self.has_del_flag_column(self.renewal_target_table):
+            raise ValueError("续报目标表缺少 del_flag 字段，请先执行 db/renewal_target_rate.sql")
+        group_key_where = "renewal_period_group_key = %s AND " if has_period_group_key else ""
+        sql = f"""
+        UPDATE {self.qualified_renewal_target_table}
+        SET del_flag = 1
+        WHERE {group_key_where}renewal_period_id = %s
+          AND grade = %s
+          AND COALESCE(class_mode, '') = %s
+          AND COALESCE(class_version, '') = %s
+          AND COALESCE(del_flag, 0) = 0
+        """
+        with self.with_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, key)
+                affected = cursor.rowcount
+            conn.commit()
+        return {"deleted": affected}
+
     def normalize_configuration_row(self, row: Dict[str, Any], operator_id: Optional[int]) -> Tuple[Any, ...]:
         config_month = normalize_month(first_value(row, "configMonth", "config_month"))
         module = str(first_value(row, "module")).strip()
@@ -555,6 +1050,11 @@ class PerformanceConfigurationRepository:
         update_by = as_int(first_value(row, "updateBy", "update_by", default=None)) or operator_id
         create_date = parse_datetime(first_value(row, "createDate", "create_date", default=None))
         period1, period2, periods = normalize_period_fields(row, module)
+        config_type = str(first_value(row, "configType", "config_type", default="")).strip()
+        if module not in CONFIG_TYPE_MODULES:
+            config_type = ""
+        elif config_type not in CONFIG_TYPE_VALUES:
+            config_type = "常规"
 
         return (
             create_by,
@@ -568,9 +1068,75 @@ class PerformanceConfigurationRepository:
             period1,
             period2,
             periods,
-            str(first_value(row, "configType", "config_type", default="")).strip(),
+            config_type,
+            as_int(first_value(row, "sortOrder", "sort_order", default=None)),
             as_smallint(first_value(row, "delFlag", "del_flag", default=0), 0),
         )
+
+    def normalize_renewal_target_row(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        renewal_period_id = as_int(first_value(row, "renewalPeriodId", "renewal_period_id", default=None))
+        grade = as_int(first_value(row, "grade", default=None))
+        if renewal_period_id is None or grade is None:
+            raise ValueError("renewalPeriodId 和 grade 不能为空")
+
+        class_mode = str(first_value(row, "classMode", "class_mode", default="")).strip()
+        class_version = str(first_value(row, "classVersion", "class_version", default="")).strip()
+        key = (renewal_period_id, grade, class_mode, class_version)
+        period_group_key = normalize_renewal_period_group_key(
+            first_value(
+                row,
+                "renewalPeriodGroupKey",
+                "renewal_period_group_key",
+                "periodGroupKey",
+                "period_group_key",
+                default="",
+            ),
+            renewal_period_id,
+        )
+
+        original_period_id = as_int(first_value(row, "originalRenewalPeriodId", "original_renewal_period_id", default=None))
+        original_grade = as_int(first_value(row, "originalGrade", "original_grade", default=None))
+        original_class_mode = str(first_value(row, "originalClassMode", "original_class_mode", default=class_mode)).strip()
+        original_class_version = str(first_value(row, "originalClassVersion", "original_class_version", default=class_version)).strip()
+        original_key = None
+        if original_period_id is not None and original_grade is not None:
+            original_key = (original_period_id, original_grade, original_class_mode, original_class_version)
+        original_period_group_key = normalize_renewal_period_group_key(
+            first_value(
+                row,
+                "originalRenewalPeriodGroupKey",
+                "original_renewal_period_group_key",
+                "originalPeriodGroupKey",
+                "original_period_group_key",
+                default="",
+            ),
+            original_period_id or renewal_period_id,
+        )
+
+        values = (
+            renewal_period_id,
+            grade,
+            class_mode,
+            class_version,
+            parse_decimal(first_value(row, "allRate", "all_rate", default=None)),
+            parse_decimal(first_value(row, "sRate", "s_rate", default=None)),
+            parse_decimal(first_value(row, "aRate", "a_rate", default=None)),
+            parse_decimal(first_value(row, "bRate", "b_rate", default=None)),
+            parse_decimal(first_value(row, "cRate", "c_rate", default=None)),
+            parse_decimal(first_value(row, "dRate", "d_rate", default=None)),
+        )
+        sort_order = as_int(first_value(row, "sortOrder", "sort_order", default=None)) or 0
+
+        return {
+            "values": values,
+            "key": key,
+            "original_key": original_key,
+            "period_group_key": period_group_key,
+            "original_period_group_key": original_period_group_key,
+            "sort_order": sort_order,
+            "deleted": bool(row.get("_delete") or row.get("delete"))
+            or as_smallint(first_value(row, "delFlag", "del_flag", default=0), 0) == 1,
+        }
 
     def fetch_all(self, sql: str, params: Iterable[Any]) -> List[Dict[str, Any]]:
         with self.with_connection() as conn:

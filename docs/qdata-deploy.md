@@ -45,17 +45,27 @@ PUBLIC_URL=http://10.4.230.23:18080
 BACKEND_HOST=0.0.0.0
 BACKEND_PORT=18080
 SESSION_MAX_AGE_SECONDS=28800
+HOLO_RENEWAL_TARGET_TABLE=bi_renewal_target_rate
 ```
 
 账号来自 `bi.dim_org_admin_user_info_hf`。登录页支持手机号、`admin_id` 或工号登录；密码只在服务端校验，不返回前端。权限规则是 `status = 1` 可查看，`permission_scope = 2` 可编辑，其他权限范围只能查看。
 
-如果是从旧版本升级，先手工执行一次主表结构脚本，里面已经包含 `periods` 字段新增和历史数据回填：
+如果是从旧版本升级，先手工执行一次主表结构脚本，里面已经包含 `periods/sort_order` 字段新增和历史数据回填：
 
 ```sql
 \i db/performance_configuration.sql
 ```
 
-迁移后 `period1/period2` 是页面维护字段：普通指标只写 `period1`，`带生数` 写 `period1` 和 `period2`；`periods text[]` 是后端按两个字段合并出的查询字段。服务启动和前端访问不会自动执行建表、字段检查或历史回填。
+迁移后 `period1/period2` 是页面维护字段：普通指标只写 `period1`，`带生数` 写 `period1` 和 `period2`；`periods text[]` 是后端按两个字段合并出的查询字段，`sort_order` 是同月指标拖拽排序字段。服务启动和前端访问不会自动执行建表、字段检查或历史回填。
+
+续报目标模块使用 `bi.bi_renewal_target_rate`，期次下拉来自 `book.db_renewal_period`，页面展示 `period_name`，保存时写 `id` 到 `renewal_period_id`。如果目标库还没有续报目标表，可以手工执行：
+
+```sql
+\i db/renewal_target_rate.sql
+\i db/renewal_target_rate_merge.sql
+```
+
+该模块列表查询以 `book.db_renewal_period` 为主表 `LEFT JOIN` 目标表；目标表没有主键，页面保存时按 `renewal_period_group_key + renewal_period_id + grade + class_mode + class_version` 作为自然键更新。组合期次关系保存在 `bi.bi_renewal_target_rate.renewal_period_group_key`，原始 `renewal_period_id` 仍保留。
 
 启动：
 

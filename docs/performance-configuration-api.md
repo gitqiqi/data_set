@@ -2,13 +2,50 @@
 
 ## 当前落库
 
-当前项目仍按 BI/Hologres 使用，配置内容只从这张表读取和保存：
+当前项目仍按 BI/Hologres 使用，绩效配置从这张表读取和保存：
 
 ```text
 bi.performance_configuration
 ```
 
-建表和升级脚本见 [performance_configuration.sql](/Users/cherry/Project/data_set/db/performance_configuration.sql)，需要时手工执行。后端服务运行时不会自动跑 DDL、字段检查或历史回填，只会请求 `/data_set/performance/configuration/list` 读取这张表的数据。
+续报目标模块从这张表读取和保存：
+
+```text
+bi.bi_renewal_target_rate
+```
+
+续报目标的期次选择来自：
+
+```text
+book.db_renewal_period
+```
+
+页面展示 `book.db_renewal_period.period_name`，保存时仍写 `book.db_renewal_period.id` 到 `bi.bi_renewal_target_rate.renewal_period_id`。点击加号新增目标时可以选择多个期次；保存后这些期次会写入同一个 `renewal_period_group_key`，顶部筛选以后按一个组合选项展示，例如 `26秋自招大续报+26秋金杯大续报+26秋创新大续报`，不会再拆成多个独立筛选项。历史单期期次会自动按单期组合兼容。
+
+顶部“筛选期次”用于查看配置时单选一个已配置的期次组合；只有点击加号新增目标时，期次选择才支持多选并创建新的组合。
+
+经核验，以下四组期次的「年级 + 班型 + 版本」组合及 `all_rate/s_rate/a_rate/b_rate/c_rate/d_rate` 一致，已将有效记录统一回填为组合键：
+
+| 组合键 | 期次名称 | 每期目标行 |
+| --- | --- | ---: |
+| `107+106` | 26暑78月物理续报 + 26暑78月数学续报 | 32 |
+| `97+96` | 26春非待续囤课 + 26春初中非待续大联续 | 38 |
+| `93+92` | 26春初中大联续 + 26春小学大续报 | 35 |
+| `78+77` | 5月自然月物理续报 + 5月自然月数学续报 | 37 |
+
+页面会将每组显示为一个组合期次，目标行按相同配置合并展示；底层仍保留每个原始 `renewal_period_id` 的记录，保存时分别更新，便于追溯。可复用的历史归并脚本见 [renewal_target_rate_merge.sql](/Users/cherry/Project/data_set/db/renewal_target_rate_merge.sql)。
+
+续报目标按「期次组合 + 年级 + 班型 + 版本」明细展示；同一组合内可拖拽调整目标行顺序，顺序保存到目标表的 `sort_order`。删除目标使用 `del_flag = 1` 逻辑删除，列表只展示 `del_flag = 0` 的数据；重新配置相同自然键时会恢复为 `del_flag = 0`。已有目标表需要先执行 [renewal_target_rate.sql](/Users/cherry/Project/data_set/db/renewal_target_rate.sql) 的字段迁移。
+
+前端切换到“续报目标”时会在请求体里传：
+
+```json
+{
+  "moduleKey": "renewalTarget"
+}
+```
+
+绩效配置建表和升级脚本见 [performance_configuration.sql](/Users/cherry/Project/data_set/db/performance_configuration.sql)，需要时手工执行。续报目标表结构脚本见 [renewal_target_rate.sql](/Users/cherry/Project/data_set/db/renewal_target_rate.sql)，历史期次归并脚本见 [renewal_target_rate_merge.sql](/Users/cherry/Project/data_set/db/renewal_target_rate_merge.sql)。后端服务运行时不会自动跑 DDL、字段检查或历史回填。
 
 字段命名按宿主项目风格保留，接口使用 camelCase，落库使用 snake_case。
 
@@ -24,10 +61,11 @@ bi.performance_configuration
 | content | content | 指标口径说明，可为空 |
 | timeStart | time_start | 生效开始日期，可为空 |
 | timeEnd | time_end | 生效结束日期，可为空 |
-| period1 | period1 | 期别 1；普通指标使用该字段，带生数使用为第一个期别 |
+| period1 | period1 | 首个期别；普通指标为多选期别中的首期，带生数为第一个期别 |
 | period2 | period2 | 期别 2；仅带生数使用，其他指标传空字符串 |
-| periods | periods | 查询汇总数组，由 `period1/period2` 合并生成，例如 `["2026秋", "2026暑"]` |
-| configType | config_type | 类型，没有时传空字符串 |
+| periods | periods | 页面选择的期别数组；普通指标支持多选，带生数由 `period1/period2` 汇总，例如 `["2026秋", "2026暑"]` |
+| configType | config_type | 类型，仅 `带生数` 使用，固定为 `常规` / `招生季`；其他指标传空字符串 |
+| sortOrder | sort_order | 同一月份下的指标展示顺序，拖拽调整后保存 |
 | delFlag | del_flag | 逻辑删除，`0` 未删除，`1` 已删除 |
 
 业务唯一键：
@@ -38,7 +76,7 @@ configMonth + module
 
 同一个月份下，一个指标只保留一条配置；期别、类型、时间范围和配置项都作为这条配置的可更新内容。
 
-页面维护 `period1/period2`：只有 `带生数` 有两个期别，分别落到 `period1` 和 `period2`；其他指标只落 `period1`，`period2` 为空。`periods` 是后端按 `period1/period2` 合并出的查询数组，后续查询使用 `periods`：
+页面维护期别时，普通指标可以多选，选中的完整列表落到 `periods`，`period1` 保存首期，`period2` 为空；`带生数` 仍使用 `period1/period2` 两个独立期别，`periods` 由两者汇总。后续查询统一使用 `periods`：
 
 ```sql
 -- 单个期别
@@ -48,7 +86,7 @@ WHERE '2026暑' = ANY(periods)
 WHERE periods && ARRAY['2026暑', '2026秋']
 ```
 
-已有表新增 `periods` 字段和历史回填逻辑已合并在 [performance_configuration.sql](/Users/cherry/Project/data_set/db/performance_configuration.sql)，只作为手工迁移脚本使用。
+已有表新增 `periods/sort_order` 字段和历史回填逻辑已合并在 [performance_configuration.sql](/Users/cherry/Project/data_set/db/performance_configuration.sql)，只作为手工迁移脚本使用。
 
 ## 当前临时权限
 
@@ -146,7 +184,7 @@ POST /data_set/performance/configuration/delete
 Content-Type: application/json
 ```
 
-页面固定请求 qData 后端，配置内容读取和保存到 `bi.performance_configuration`。
+页面固定请求 qData 后端，绩效配置读取和保存到 `bi.performance_configuration`；续报目标模块传 `moduleKey: "renewalTarget"` 后读取和保存到 `bi.bi_renewal_target_rate`。
 
 列表接口请求体：
 
@@ -180,6 +218,7 @@ Content-Type: application/json
         "period2": "2026暑",
         "periods": ["2026秋", "2026暑"],
         "config_type": "常规",
+        "sort_order": 1,
         "del_flag": 0
       }
     ],
@@ -220,7 +259,104 @@ window.reloadPerformanceConfigurationPeriodOptions();
     "period2": "2026暑",
     "periods": ["2026秋", "2026暑"],
     "configType": "常规",
+    "sortOrder": 1,
     "delFlag": 0
   }
 ]
+```
+
+续报目标列表请求体：
+
+```json
+{
+  "moduleKey": "renewalTarget"
+}
+```
+
+续报目标返回字段：
+
+```json
+{
+  "records": [
+    {
+      "renewal_period_id": 107,
+      "renewal_period_name": "2026暑3期",
+      "renewal_period_group_key": "107",
+      "grade": 2,
+      "class_mode": "笃学",
+      "class_version": "",
+      "all_rate": null,
+      "s_rate": "0.56",
+      "a_rate": "0.64",
+      "b_rate": "0.48",
+      "c_rate": "0.24",
+      "d_rate": "0.16",
+      "del_flag": 0
+    }
+  ],
+  "renewalPeriodIds": ["107", "106"],
+  "renewalPeriodOptions": [
+    { "id": "107", "periodGroupKey": "107", "periodIds": [107], "periodName": "2026暑3期" },
+    { "id": "106", "periodGroupKey": "106", "periodIds": [106], "periodName": "2026暑2期" },
+    { "id": "107+106", "periodGroupKey": "107+106", "periodIds": [107, 106], "periodName": "2026暑3期+2026暑2期" }
+  ],
+  "availableRenewalPeriodOptions": [
+    { "id": 118, "periodGroupKey": "118", "periodIds": [118], "periodName": "2026秋续报" },
+    { "id": 107, "periodGroupKey": "107", "periodIds": [107], "periodName": "2026暑3期" }
+  ],
+  "activeRenewalPeriodId": "107"
+}
+```
+
+续报目标保存 payload：
+
+```json
+{
+  "moduleKey": "renewalTarget",
+  "rows": [
+    {
+      "renewalPeriodId": 107,
+      "renewalPeriodGroupKey": "107+106",
+      "grade": 2,
+      "classMode": "笃学",
+      "classVersion": "",
+      "allRate": null,
+      "sRate": "0.56",
+      "aRate": "0.64",
+      "bRate": "0.48",
+      "cRate": "0.24",
+      "dRate": "0.16",
+      "originalRenewalPeriodId": 107,
+      "originalRenewalPeriodGroupKey": "107",
+      "originalGrade": 2,
+      "originalClassMode": "笃学",
+      "originalClassVersion": "",
+      "delFlag": 0
+    }
+  ]
+}
+```
+
+续报目标没有数据库主键，服务端按自然键更新：
+
+```text
+renewal_period_group_key + renewal_period_id + grade + class_mode + class_version
+```
+
+续报目标删除时仍按同一自然键更新数据库，不执行物理删除：
+
+```json
+{
+  "renewalPeriodId": 107,
+  "renewalPeriodGroupKey": "107+106",
+  "grade": 2,
+  "classMode": "笃学",
+  "classVersion": "",
+  "originalRenewalPeriodId": 107,
+  "originalRenewalPeriodGroupKey": "107+106",
+  "originalGrade": 2,
+  "originalClassMode": "笃学",
+  "originalClassVersion": "",
+  "delFlag": 1
+}
 ```
