@@ -24,7 +24,7 @@ ALTER TABLE bi.performance_configuration
   ADD COLUMN IF NOT EXISTS periods text[];
 
 ALTER TABLE bi.performance_configuration
-  ADD COLUMN IF NOT EXISTS sort_order integer NOT NULL DEFAULT 0;
+  ADD COLUMN IF NOT EXISTS sort_order integer DEFAULT 0;
 
 ALTER TABLE bi.performance_configuration
   ALTER COLUMN sort_order SET DEFAULT 0;
