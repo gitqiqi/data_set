@@ -596,9 +596,9 @@
     }
 
     .metric-table {
-      min-width: 900px;
+      min-width: 942px;
       display: grid;
-      grid-template-columns: 142px 156px 68px 274px minmax(260px, 1fr);
+      grid-template-columns: 184px 156px 68px 274px minmax(260px, 1fr);
     }
 
     .renewal-target-table {
@@ -1483,8 +1483,8 @@
       }
 
       .metric-table {
-        min-width: 844px;
-        grid-template-columns: 128px 140px 64px 246px minmax(210px, 1fr);
+        min-width: 892px;
+        grid-template-columns: 176px 140px 64px 246px minmax(210px, 1fr);
       }
 
       .range-popover {
@@ -2827,7 +2827,7 @@
             <button class="drag-handle" type="button" draggable="true" title="拖动排序" aria-label="拖动排序"${readonly ? " hidden disabled" : ""}>
               <span class="drag-grip" aria-hidden="true"></span>
             </button>
-            <span class="metric-name-text${readonly ? "" : " metric-drag-source"}"${readonly ? "" : ' draggable="true" title="拖动排序"'}>${escapeHtml(record.module)}</span>
+            <span class="metric-name-text${readonly ? "" : " metric-drag-source"}" title="${escapeAttr(record.module)}"${readonly ? "" : ' draggable="true"'}>${escapeHtml(record.module)}</span>
           </div>
           <div class="cell">
             ${periodControl(record, readonly)}
