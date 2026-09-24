@@ -56,7 +56,9 @@ HOLO_RENEWAL_TARGET_TABLE=bi_renewal_target_rate
 \i db/performance_configuration.sql
 ```
 
-迁移后 `period1/period2` 是页面维护字段：普通指标只写 `period1`，`带生数` 写 `period1` 和 `period2`；`periods text[]` 是后端按两个字段合并出的查询字段，`sort_order` 是同月指标拖拽排序字段。服务启动和前端访问不会自动执行建表、字段检查或历史回填。
+迁移后 `period1/period2` 是页面维护字段：普通指标只写 `period1`，`带生数` / `刷题班带生数` 写 `period1` 和 `period2`；`periods text[]` 是后端按两个字段合并出的查询字段，`sort_order` 是同月指标拖拽排序字段。服务启动和前端访问不会自动执行建表、字段检查或历史回填。
+
+早于服务当前月份的绩效配置月份会被视为历史月份：页面置灰只读，保存和删除接口也会拒绝写入。
 
 续报目标模块使用 `bi.bi_renewal_target_rate`，期次下拉来自 `book.db_renewal_period`，页面展示 `period_name`，保存时写 `id` 到 `renewal_period_id`。如果目标库还没有续报目标表，可以手工执行：
 

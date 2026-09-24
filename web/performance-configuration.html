@@ -314,6 +314,12 @@
       box-shadow: 0 0 0 3px rgba(191, 127, 47, 0.13);
     }
 
+    .month-select.is-history {
+      border-color: #d6dde5;
+      background: #f7f8fa;
+      color: #66717f;
+    }
+
     .month-caret {
       flex: 0 0 auto;
       width: 8px;
@@ -394,6 +400,24 @@
       border-color: var(--accent);
       background: var(--accent-soft);
       color: var(--accent);
+    }
+
+    .month-option.is-history {
+      border-color: #d6dde5;
+      background: #f7f8fa;
+      color: #7a8593;
+    }
+
+    .month-option.is-history:hover,
+    .month-option.is-history:focus {
+      border-color: #c2ccd8;
+      color: #66717f;
+    }
+
+    .month-option.is-history.active {
+      border-color: #aeb8c4;
+      background: #eef1f4;
+      color: #56616f;
     }
 
     .renewal-target-period-group .month-grid {
@@ -698,6 +722,25 @@
 
     .renewal-target-row:nth-child(odd) .cell {
       background: var(--surface-soft);
+    }
+
+    .metric-table.is-history-locked .cell {
+      background: #f3f5f7;
+      color: #66717f;
+    }
+
+    .metric-table.is-history-locked .metric-name-text,
+    .metric-table.is-history-locked .range-trigger,
+    .metric-table.is-history-locked .period-trigger {
+      color: #66717f;
+    }
+
+    .metric-table.is-history-locked .textarea,
+    .metric-table.is-history-locked .input,
+    .metric-table.is-history-locked .select {
+      border-color: #d6dde5;
+      background: #eef1f4;
+      color: #66717f;
     }
 
     .renewal-target-grade-cell {
@@ -1626,7 +1669,8 @@
     const configurationListUrl = `${apiBase}/list`;
     const periodOptionsUrl = `${apiBase}/periodOptions`;
     const adminInfoUrl = `${apiBase}/adminUserInfo`;
-    const dualPeriodModules = new Set(["带生数"]);
+    const dualPeriodModules = new Set(["带生数", "刷题班带生数"]);
+    const configTypeModules = new Set(["带生数", "刷题班带生数"]);
     const configTypeOptions = ["常规", "招生季"];
     const configurationModules = [
       { id: "performance", label: "绩效配置", enabled: true },
@@ -1651,6 +1695,7 @@
       "课中退",
       "学员回访",
       "新生通话",
+      "刷题班带生数",
       "刷题班上课数据",
       "刷题班课中退",
       "刷题班试听退",
@@ -2022,7 +2067,7 @@
     }
 
     function isConfigTypeModule(moduleName) {
-      return String(moduleName ?? "").trim() === "带生数";
+      return configTypeModules.has(String(moduleName ?? "").trim());
     }
 
     function normalizeConfigType(value, moduleName = "") {
@@ -2303,6 +2348,26 @@
       return false;
     }
 
+    function currentConfigMonth() {
+      return defaultConfigMonth();
+    }
+
+    function isHistoricalMonth(month) {
+      const key = monthKey(month);
+      return /^\d{4}-\d{2}$/.test(key) && key < currentConfigMonth();
+    }
+
+    function canEditPerformanceMonth(month = activeMonth) {
+      return resolvePermissionState().canEdit && !isHistoricalMonth(month);
+    }
+
+    function requireEditablePerformanceMonth(month = activeMonth) {
+      if (!requireEditPermission()) return false;
+      if (!isHistoricalMonth(month)) return true;
+      showToast("历史月份已锁定，仅可查看");
+      return false;
+    }
+
     function applyPreviousMonthDefaults(inputRecords) {
       const sorted = [...inputRecords].sort((a, b) => {
         const byMonth = monthKey(a.configMonth).localeCompare(monthKey(b.configMonth));
@@ -2366,12 +2431,16 @@
     }
 
     function applyPermissionControls(auth) {
-      [els.addMonthBtn, els.saveBtn].forEach((button) => {
-        button.hidden = !auth.canEdit;
-        button.disabled = !auth.canEdit;
-      });
       els.addMonthBtn.title = activeModule === renewalTargetModuleKey ? "新增目标行" : "新增月份";
       els.addMonthBtn.setAttribute("aria-label", els.addMonthBtn.title);
+      els.addMonthBtn.hidden = !auth.canEdit;
+      els.addMonthBtn.disabled = !auth.canEdit;
+
+      const lockedPerformanceMonth = activeModule === "performance" && isHistoricalMonth(activeMonth);
+      els.saveBtn.hidden = !auth.canEdit;
+      els.saveBtn.disabled = !auth.canEdit || lockedPerformanceMonth;
+      els.saveBtn.title = lockedPerformanceMonth ? "历史月份已锁定，仅可查看" : "保存";
+
       if (els.addMetricBtn) {
         els.addMetricBtn.hidden = true;
         els.addMetricBtn.disabled = true;
@@ -2451,6 +2520,10 @@
       }
 
       els.monthFilterLabel.textContent = activeMonth ? formatMonthLabel(activeMonth) : "选择月份";
+      els.monthFilter.classList.toggle("is-history", isHistoricalMonth(activeMonth));
+      els.monthFilter.title = isHistoricalMonth(activeMonth)
+        ? `${formatMonthLabel(activeMonth)}（历史月份已锁定）`
+        : (activeMonth ? formatMonthLabel(activeMonth) : "选择月份");
       els.monthFilter.disabled = false;
       els.monthFilter.setAttribute("aria-expanded", String(monthPickerOpen));
       els.monthFilterPopover.hidden = !monthPickerOpen;
@@ -2468,6 +2541,7 @@
       els.monthFilter.setAttribute("aria-label", "筛选期次");
       els.monthFilterPopover.setAttribute("aria-multiselectable", "false");
       els.monthFilterPopover.classList.add("renewal-target-period-popover");
+      els.monthFilter.classList.remove("is-history");
       const orderedPeriodIds = [...renewalTargetPeriodIds].sort(
         (a, b) => renewalTargetGroupSortValue(b) - renewalTargetGroupSortValue(a)
       );
@@ -2523,6 +2597,7 @@
       els.monthFilterLabel.textContent = label;
       els.monthFilter.title = label;
       els.monthFilter.disabled = true;
+      els.monthFilter.classList.remove("is-history");
       els.monthFilter.setAttribute("aria-expanded", "false");
       els.monthFilterPopover.classList.remove("renewal-target-period-popover");
       els.monthFilterPopover.hidden = true;
@@ -2566,11 +2641,16 @@
         <span class="month-year-group" role="group" aria-label="${escapeAttr(`${year}年`)}">
           <span class="month-year-title">${escapeHtml(`${year}年`)}</span>
           <span class="month-grid">
-            ${yearMonths.map((month) => `
-              <button class="month-option${month === activeMonth ? " active" : ""}" type="button" role="option" aria-selected="${month === activeMonth}" data-month="${escapeAttr(month)}">
-                ${escapeHtml(formatMonthShortLabel(month))}
-              </button>
-            `).join("")}
+            ${yearMonths.map((month) => {
+              const historyClass = isHistoricalMonth(month) ? " is-history" : "";
+              const activeClass = month === activeMonth ? " active" : "";
+              const title = isHistoricalMonth(month) ? `${formatMonthLabel(month)}（历史月份已锁定）` : formatMonthLabel(month);
+              return `
+                <button class="month-option${activeClass}${historyClass}" type="button" role="option" aria-selected="${month === activeMonth}" data-month="${escapeAttr(month)}" title="${escapeAttr(title)}">
+                  ${escapeHtml(formatMonthShortLabel(month))}
+                </button>
+              `;
+            }).join("")}
           </span>
         </span>
       `).join("");
@@ -2742,7 +2822,7 @@
     }
 
     function renderMetricTemplates(auth = resolvePermissionState()) {
-      if (!auth.canEdit || isLoadingConfiguration) {
+      if (!auth.canEdit || isHistoricalMonth(activeMonth) || isLoadingConfiguration) {
         els.metricTemplateShelf.hidden = true;
         els.metricTemplateShelf.innerHTML = "";
         return;
@@ -2791,7 +2871,8 @@
         return;
       }
 
-      const readonly = !auth.canEdit;
+      const historicalMonth = isHistoricalMonth(activeMonth);
+      const readonly = !auth.canEdit || historicalMonth;
       const readonlyAttr = readonly ? " readonly" : "";
       const disabledAttr = readonly ? " disabled" : "";
       const rows = recordsForActiveMonth();
@@ -2807,7 +2888,7 @@
       }
 
       const table = document.createElement("div");
-      table.className = `metric-table${readonly ? " is-readonly" : ""}`;
+      table.className = `metric-table${readonly ? " is-readonly" : ""}${historicalMonth ? " is-history-locked" : ""}`;
         table.innerHTML = `
         <div class="table-head">
           <div>指标</div>
@@ -3438,9 +3519,9 @@
     }
 
     function selectRangeDate(id, value, row) {
-      if (!requireEditPermission()) return;
       const record = records.find((item) => item.id === id);
       if (!record) return;
+      if (!requireEditablePerformanceMonth(record.configMonth)) return;
       const draft = ensureRangeDraft(record);
       const shouldComplete = draft.stage === "end" && draft.start;
 
@@ -3593,7 +3674,7 @@
     }
 
     function handleMetricWrapDragOver(event) {
-      if (!draggingTemplateModule) return;
+      if (!draggingTemplateModule || !canEditPerformanceMonth()) return;
       event.preventDefault();
       event.dataTransfer.dropEffect = "copy";
       els.metricWrap.classList.add("template-drag-over");
@@ -3605,14 +3686,14 @@
     }
 
     function handleMetricWrapDrop(event) {
-      if (!draggingTemplateModule) return;
+      if (!draggingTemplateModule || !canEditPerformanceMonth()) return;
       if (event.target.closest(".metric-row")) return;
       event.preventDefault();
       addMetricFromTemplate(draggingTemplateModule);
     }
 
     function handleTemplateShelfDragOver(event) {
-      if (!draggingRecordId) return;
+      if (!draggingRecordId || !canEditPerformanceMonth()) return;
       event.preventDefault();
       event.dataTransfer.dropEffect = "move";
       els.metricTemplateShelf.classList.add("record-drag-over");
@@ -3625,7 +3706,7 @@
     }
 
     function handleTemplateShelfDrop(event) {
-      if (!draggingRecordId) return;
+      if (!draggingRecordId || !canEditPerformanceMonth()) return;
       event.preventDefault();
       event.stopPropagation();
       deleteRecordToTemplateShelf(draggingRecordId);
@@ -3665,7 +3746,7 @@
     }
 
     function moveRecordWithinActiveMonth(sourceId, targetId, placement) {
-      if (!requireEditPermission()) return;
+      if (!requireEditablePerformanceMonth(activeMonth)) return;
       const orderedRows = recordsForActiveMonth();
       const source = orderedRows.find((record) => String(record.id) === String(sourceId));
       if (!source) return;
@@ -3712,9 +3793,9 @@
     }
 
     function updateRecord(id, field, value, sourceElement = null) {
-      if (!requireEditPermission()) return;
       const record = records.find((item) => item.id === id);
       if (!record) return;
+      if (!requireEditablePerformanceMonth(record.configMonth)) return;
       const isTimeField = field === "timeStart" || field === "timeEnd";
 
       record[field] = field === "configType" ? normalizeConfigType(value, record.module) : value;
@@ -3754,9 +3835,9 @@
     }
 
     function selectPeriod(id, field, period, sourceElement = null) {
-      if (!requireEditPermission()) return;
       const record = records.find((item) => item.id === id);
       if (!record) return;
+      if (!requireEditablePerformanceMonth(record.configMonth)) return;
       const normalized = normalizePeriodValue(period);
       if (isDualPeriodRecord(record)) {
         const targetField = field === "period2" ? "period2" : "period1";
@@ -3921,7 +4002,7 @@
     }
 
     function addMetric() {
-      if (!requireEditPermission()) return;
+      if (!requireEditablePerformanceMonth(activeMonth)) return;
       const firstAvailable = metricTemplates().find((template) => {
         return !recordsForActiveMonth().some((record) => record.module.trim() === template.module);
       });
@@ -3933,7 +4014,7 @@
     }
 
     function addMetricFromTemplate(moduleName, targetId = "", placement = "after") {
-      if (!requireEditPermission()) return;
+      if (!requireEditablePerformanceMonth(activeMonth)) return;
       const module = String(moduleName || "").trim();
       if (!module) return;
       if (recordsForActiveMonth().some((record) => record.module.trim() === module)) {
@@ -3964,9 +4045,9 @@
     }
 
     function softDeleteRecord(id) {
-      if (!requireEditPermission()) return;
       const record = records.find((item) => item.id === id);
       if (!record) return;
+      if (!requireEditablePerformanceMonth(record.configMonth)) return;
       record.delFlag = 1;
       record.updateBy = operator();
       record.updateDate = nowIso();
@@ -3976,9 +4057,9 @@
     }
 
     function deleteRecordToTemplateShelf(id) {
-      if (!requireEditPermission()) return;
       const record = records.find((item) => String(item.id) === String(id));
       if (!record) return;
+      if (!requireEditablePerformanceMonth(record.configMonth)) return;
       record.delFlag = 1;
       record.updateBy = operator();
       record.updateDate = nowIso();
@@ -4114,7 +4195,7 @@
         await saveRenewalTargets();
         return;
       }
-      if (!requireEditPermission()) return;
+      if (!requireEditablePerformanceMonth(activeMonth)) return;
       const invalid = recordsForActiveMonth().find((record) => {
         return !record.module.trim() || !record.timeStart || !record.timeEnd || record.timeStart > record.timeEnd;
       });

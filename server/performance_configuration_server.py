@@ -37,7 +37,8 @@ ENV_FILE = PROJECT_ROOT / ".env"
 IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 PERFORMANCE_MODULE_KEY = "performance"
 RENEWAL_TARGET_MODULE_KEY = "renewalTarget"
-CONFIG_TYPE_MODULES = {"带生数"}
+DUAL_PERIOD_MODULES = {"带生数", "刷题班带生数"}
+CONFIG_TYPE_MODULES = {"带生数", "刷题班带生数"}
 CONFIG_TYPE_VALUES = {"常规", "招生季"}
 
 
@@ -87,6 +88,16 @@ def normalize_month(value: Any) -> str:
     if not match:
         return text
     return f"{match.group(1)}-{int(match.group(2)):02d}"
+
+
+def current_config_month() -> str:
+    today = date.today()
+    return f"{today.year}-{today.month:02d}"
+
+
+def is_historical_config_month(value: Any) -> bool:
+    month = normalize_month(value)
+    return bool(re.match(r"^\d{4}-\d{2}$", month)) and month < current_config_month()
 
 
 def parse_date(value: Any) -> Optional[date]:
@@ -214,7 +225,7 @@ def normalize_period_list(value: Any) -> List[str]:
 
 
 def is_dual_period_module(module: str) -> bool:
-    return module.strip() == "带生数"
+    return module.strip() in DUAL_PERIOD_MODULES
 
 
 def normalize_period_fields(row: Dict[str, Any], module: str) -> Tuple[str, str, List[str]]:
@@ -472,6 +483,16 @@ class PerformanceConfigurationRepository:
             "months": months,
             "activeMonth": config_month or (months[0] if months else ""),
         }
+
+    def performance_config_month_for_id(self, record_id: int) -> str:
+        sql = f"""
+        SELECT config_month
+        FROM {self.qualified_performance_table}
+        WHERE id = %s
+        LIMIT 1
+        """
+        rows = self.fetch_all(sql, [record_id])
+        return normalize_month(rows[0].get("config_month")) if rows else ""
 
     def list_renewal_targets(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         renewal_period_id = as_int(first_value(payload, "renewalPeriodId", "renewal_period_id", default=None))
@@ -773,6 +794,10 @@ class PerformanceConfigurationRepository:
         if not normalized_rows:
             return {"saved": 0}
 
+        locked_months = sorted({row[3] for row in normalized_rows if is_historical_config_month(row[3])})
+        if locked_months:
+            raise ValueError(f"历史月份已锁定，不能保存: {', '.join(locked_months)}")
+
         if has_sort_order:
             template = (
                 "(%s, %s, COALESCE(%s, now()), now(), %s, %s, %s, %s, %s, "
@@ -992,6 +1017,10 @@ class PerformanceConfigurationRepository:
         if record_id is None and (not config_month or not module):
             raise ValueError("删除需要 id，或 configMonth + module")
 
+        target_month = self.performance_config_month_for_id(record_id) if record_id is not None else config_month
+        if is_historical_config_month(target_month):
+            raise ValueError(f"历史月份已锁定，不能删除: {target_month}")
+
         if record_id is not None:
             sql = f"""
             UPDATE {self.qualified_table}
@@ -1204,6 +1233,8 @@ class PerformanceConfigurationHandler(BaseHTTPRequestHandler):
                     self.send_error_json(HTTPStatus.FORBIDDEN, "暂无编辑权限")
                     return
             handler(payload)
+        except ValueError as exc:
+            self.send_error_json(HTTPStatus.BAD_REQUEST, str(exc) or "参数错误")
         except Exception as exc:
             traceback.print_exc()
             self.send_error_json(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc) or "服务器异常")

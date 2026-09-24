@@ -39,9 +39,9 @@ COMMENT ON COLUMN bi.performance_configuration.module IS '配置模块，例如 
 COMMENT ON COLUMN bi.performance_configuration.content IS '前端维护的指标口径说明，按换行保存，可为空';
 COMMENT ON COLUMN bi.performance_configuration.time_start IS '配置适用开始日期';
 COMMENT ON COLUMN bi.performance_configuration.time_end IS '配置适用结束日期';
-COMMENT ON COLUMN bi.performance_configuration.period1 IS '首个期别；普通指标为多选期别中的首期，带生数为第一个期别';
-COMMENT ON COLUMN bi.performance_configuration.period2 IS '期别 2；仅带生数使用';
-COMMENT ON COLUMN bi.performance_configuration.periods IS '页面选择的期别数组；普通指标支持多选，带生数由 period1/period2 汇总，例如 ARRAY[''2026秋'', ''2026暑'']，用于 ANY/&& 查询';
+COMMENT ON COLUMN bi.performance_configuration.period1 IS '首个期别；普通指标为多选期别中的首期，带生数类指标为第一个期别';
+COMMENT ON COLUMN bi.performance_configuration.period2 IS '期别 2；仅带生数类指标使用';
+COMMENT ON COLUMN bi.performance_configuration.periods IS '页面选择的期别数组；普通指标支持多选，带生数类指标由 period1/period2 汇总，例如 ARRAY[''2026秋'', ''2026暑'']，用于 ANY/&& 查询';
 COMMENT ON COLUMN bi.performance_configuration.config_type IS '配置类型，例如 常规，没有类型时为空字符串';
 COMMENT ON COLUMN bi.performance_configuration.sort_order IS '同一配置月份下的指标展示顺序';
 COMMENT ON COLUMN bi.performance_configuration.del_flag IS '逻辑删除标记，0 未删除，1 已删除';
