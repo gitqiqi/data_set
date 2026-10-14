@@ -30,6 +30,7 @@ http://10.4.230.23:18080/login.html
 /data_set/performance/configuration/adminUserInfo
 /data_set/performance/configuration/batchUpsert
 /data_set/performance/configuration/delete
+/data_set/performance/configuration/importRenewalTargets
 /data_set/performance/configuration/login
 /data_set/performance/configuration/logout
 /data_set/performance/configuration/me

@@ -183,6 +183,7 @@ POST /data_set/performance/configuration/list
 POST /data_set/performance/configuration/periodOptions
 POST /data_set/performance/configuration/batchUpsert
 POST /data_set/performance/configuration/delete
+POST /data_set/performance/configuration/importRenewalTargets
 Content-Type: application/json
 ```
 
@@ -360,5 +361,60 @@ renewal_period_group_key + renewal_period_id + grade + class_mode + class_versio
   "originalClassMode": "笃学",
   "originalClassVersion": "",
   "delFlag": 1
+}
+```
+
+续报目标支持先导入 Excel，再在页面检查和保存。导入接口只解析文件并返回草稿数据，不直接落库；页面会按「期次组合 + 年级 + 班型 + 版本」覆盖当前草稿里的同键行，找不到同键行时追加，最后仍由 `/batchUpsert` 保存。
+
+```http
+POST /data_set/performance/configuration/importRenewalTargets
+Content-Type: multipart/form-data
+```
+
+表单字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| file | `.xlsx` 或 `.csv` 文件。旧版 `.xls` 需另存为 `.xlsx` |
+| fallbackPeriodIds | 可选；当 Excel 没有期次列时，使用页面当前选择的期次组合，例如 `107+106` |
+
+Excel 首行表头可使用：
+
+| 表头 | 含义 |
+| --- | --- |
+| 续报期ID / 期次ID | 单个或多个期次 ID，多个用 `+`、逗号或顿号分隔 |
+| 续报期 / 期次名称 | 可用期次名称代替 ID，需能匹配 `book.db_renewal_period.period_name` |
+| 年级 | `1` 到 `12` |
+| 班型 | 例如 `创新`、`笃学`、`睿学` |
+| 版本 | 可为空 |
+| 总目标率 / S档 / A档 / B档 / C档 / D档 | 目标率，支持小数或百分比文本 |
+| 排序 | 可选；不填时按导入顺序 |
+
+导入返回：
+
+```json
+{
+  "records": [
+    {
+      "renewalPeriodIds": ["107", "106"],
+      "renewalPeriodId": "107",
+      "renewalPeriodGroupKey": "107+106",
+      "renewalPeriodName": "26暑78月物理续报+26暑78月数学续报",
+      "grade": "2",
+      "classMode": "笃学",
+      "classVersion": "",
+      "allRate": "0.6",
+      "sRate": "0.56",
+      "aRate": "0.64",
+      "bRate": "0.48",
+      "cRate": "0.24",
+      "dRate": "0.16",
+      "sortOrder": 1,
+      "delFlag": 0
+    }
+  ],
+  "errors": [],
+  "totalRows": 1,
+  "importedRows": 1
 }
 ```

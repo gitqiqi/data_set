@@ -466,6 +466,78 @@
       display: inline-flex;
     }
 
+    .import-renewal-target-control {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .import-help-button {
+      flex: 0 0 34px;
+      width: 34px;
+      min-width: 34px;
+      min-height: 34px;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .import-help-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 80;
+      width: min(380px, calc(100vw - 48px));
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      color: var(--text);
+      display: grid;
+      gap: 10px;
+      text-align: left;
+      white-space: normal;
+    }
+
+    .import-help-popover[hidden] {
+      display: none;
+    }
+
+    .import-help-title {
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.35;
+      font-weight: 800;
+    }
+
+    .import-help-list {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      font-weight: 650;
+    }
+
+    .import-help-list b {
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .import-help-example {
+      padding: 8px 9px;
+      border: 1px solid #e5edf5;
+      border-radius: 7px;
+      background: #f8fafc;
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.45;
+      font-weight: 650;
+    }
+
     .add-renewal-period-popover {
       left: auto;
       right: 0;
@@ -758,6 +830,14 @@
       width: 24px;
     }
 
+    .renewal-target-row.has-open-picker .cell {
+      z-index: 20;
+    }
+
+    .renewal-target-cell-open {
+      z-index: 40;
+    }
+
     .renewal-target-row.dragging .cell {
       opacity: 0.52;
     }
@@ -915,6 +995,10 @@
       align-items: center;
     }
 
+    .renewal-tag-picker.is-open {
+      z-index: 50;
+    }
+
     .renewal-tag-trigger {
       width: auto;
       max-width: 100%;
@@ -993,7 +1077,7 @@
       position: absolute;
       top: 44px;
       left: 0;
-      z-index: 8;
+      z-index: 60;
       width: 236px;
       max-height: 270px;
       padding: 8px;
@@ -1004,6 +1088,15 @@
       display: grid;
       gap: 8px;
       overflow: auto;
+    }
+
+    .renewal-tag-popover-floating {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+      width: 236px;
+      max-width: calc(100vw - 16px);
     }
 
     .renewal-tag-popover[hidden] {
@@ -1651,6 +1744,21 @@
                   <button id="addMonthBtn" class="button icon-button" type="button" title="新增月份" aria-label="新增月份">+</button>
                   <span id="addRenewalPeriodPopover" class="month-popover add-renewal-period-popover" role="listbox" hidden></span>
                 </span>
+                <span id="importRenewalTargetControl" class="import-renewal-target-control" hidden>
+                  <button id="importRenewalTargetBtn" class="button" type="button">导入Excel</button>
+                  <button id="importRenewalTargetHelpBtn" class="button import-help-button" type="button" aria-label="导入字段说明" aria-expanded="false" title="导入字段说明">?</button>
+                  <span id="importRenewalTargetHelpPopover" class="import-help-popover" hidden>
+                    <span class="import-help-title">Excel 导入字段</span>
+                    <span class="import-help-list">
+                      <span><b>必填：</b>年级、班型。</span>
+                      <span><b>建议填写：</b>续报期ID 或 期次ID。不填时使用当前筛选期次。</span>
+                      <span><b>可选：</b>版本、总目标率、S档、A档、B档、C档、D档、排序。</span>
+                      <span><b>文件：</b>支持 .xlsx / .csv；.xls 先另存为 .xlsx。</span>
+                    </span>
+                    <span class="import-help-example">表头示例：续报期ID、年级、班型、版本、总目标率、S档、A档、B档、C档、D档、排序</span>
+                  </span>
+                  <input id="importRenewalTargetInput" type="file" accept=".xlsx,.csv" hidden>
+                </span>
                 <button id="saveBtn" class="button primary" type="button">保存</button>
               </div>
             </div>
@@ -1663,6 +1771,7 @@
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="renewalTargetPopover" class="renewal-tag-popover renewal-tag-popover-floating" hidden></div>
 
   <script>
     const apiBase = window.PERFORMANCE_CONFIGURATION_API_BASE || "/data_set/performance/configuration";
@@ -1706,6 +1815,11 @@
     const els = {
       saveBtn: document.getElementById("saveBtn"),
       addMonthBtn: document.getElementById("addMonthBtn"),
+      importRenewalTargetControl: document.getElementById("importRenewalTargetControl"),
+      importRenewalTargetBtn: document.getElementById("importRenewalTargetBtn"),
+      importRenewalTargetHelpBtn: document.getElementById("importRenewalTargetHelpBtn"),
+      importRenewalTargetHelpPopover: document.getElementById("importRenewalTargetHelpPopover"),
+      importRenewalTargetInput: document.getElementById("importRenewalTargetInput"),
       addMetricBtn: document.getElementById("addMetricBtn"),
       moduleList: document.getElementById("moduleList"),
       filterCaption: document.getElementById("filterCaption"),
@@ -1715,6 +1829,7 @@
       addRenewalPeriodPopover: document.getElementById("addRenewalPeriodPopover"),
       metricTemplateShelf: document.getElementById("metricTemplateShelf"),
       metricWrap: document.getElementById("metricWrap"),
+      renewalTargetPopover: document.getElementById("renewalTargetPopover"),
       toast: document.getElementById("toast")
     };
 
@@ -1732,6 +1847,8 @@
     let isLoadingConfiguration = true;
     let isLoadingRenewalTargets = true;
     let isLoadingPermission = true;
+    let isImportingRenewalTargets = false;
+    let isSavingConfiguration = false;
     const rangeDrafts = new Map();
     let remoteAdminPermissionRows = [];
     let draggingRecordId = "";
@@ -1740,6 +1857,7 @@
     let activeModule = "performance";
     let monthPickerOpen = false;
     let addRenewalPeriodPickerOpen = false;
+    let importRenewalTargetHelpOpen = false;
     let openRenewalTargetPicker = null;
 
     function boot() {
@@ -2412,6 +2530,7 @@
         return;
       }
       if (!auth.canView) {
+        hideRenewalTargetFloatingPopover();
         renderNoPermission();
         return;
       }
@@ -2419,12 +2538,14 @@
       if (activeModule === renewalTargetModuleKey) {
         renderRenewalTargetFilter(auth);
         renderAddRenewalPeriodPicker(auth);
+        renderImportRenewalTargetHelp();
         els.metricTemplateShelf.hidden = true;
         els.metricTemplateShelf.innerHTML = "";
         renderRenewalTargets(auth);
         return;
       }
       closeAddRenewalPeriodPicker();
+      closeImportRenewalTargetHelp(false);
       renderMonthFilter(auth);
       renderMetricTemplates(auth);
       renderMetrics(auth);
@@ -2436,10 +2557,21 @@
       els.addMonthBtn.hidden = !auth.canEdit;
       els.addMonthBtn.disabled = !auth.canEdit;
 
+      const canImportRenewalTargets = auth.canEdit && activeModule === renewalTargetModuleKey;
+      els.importRenewalTargetControl.hidden = !canImportRenewalTargets;
+      els.importRenewalTargetBtn.disabled = !canImportRenewalTargets || isImportingRenewalTargets;
+      els.importRenewalTargetBtn.title = isImportingRenewalTargets
+        ? "正在导入"
+        : "支持 .xlsx / .csv；必填：年级、班型；建议填写：续报期ID";
+      if (!canImportRenewalTargets) {
+        closeImportRenewalTargetHelp(false);
+      }
+
       const lockedPerformanceMonth = activeModule === "performance" && isHistoricalMonth(activeMonth);
       els.saveBtn.hidden = !auth.canEdit;
-      els.saveBtn.disabled = !auth.canEdit || lockedPerformanceMonth;
-      els.saveBtn.title = lockedPerformanceMonth ? "历史月份已锁定，仅可查看" : "保存";
+      els.saveBtn.disabled = !auth.canEdit || lockedPerformanceMonth || isSavingConfiguration;
+      els.saveBtn.textContent = isSavingConfiguration ? "保存中" : "保存";
+      els.saveBtn.title = isSavingConfiguration ? "正在保存" : (lockedPerformanceMonth ? "历史月份已锁定，仅可查看" : "保存");
 
       if (els.addMetricBtn) {
         els.addMetricBtn.hidden = true;
@@ -2451,6 +2583,7 @@
       renderModules();
       resetMonthFilter(activeModule === renewalTargetModuleKey ? "选择期次" : "选择月份");
       closeAddRenewalPeriodPicker();
+      hideRenewalTargetFloatingPopover();
       els.metricTemplateShelf.hidden = true;
       els.metricTemplateShelf.innerHTML = "";
       els.metricWrap.innerHTML = `<div class="empty-state">${escapeHtml(message)}</div>`;
@@ -2460,6 +2593,7 @@
       renderModules();
       resetMonthFilter(activeModule === renewalTargetModuleKey ? "选择期次" : "选择月份");
       closeAddRenewalPeriodPicker();
+      hideRenewalTargetFloatingPopover();
       els.metricTemplateShelf.hidden = true;
       els.metricTemplateShelf.innerHTML = "";
       els.metricWrap.innerHTML = `<div class="empty-state">暂无权限查看${escapeHtml(activeModuleLabel())}。</div>`;
@@ -2492,6 +2626,7 @@
           draggingRenewalTargetId = "";
           closeMonthPicker();
           closeAddRenewalPeriodPicker();
+          closeImportRenewalTargetHelp(false);
           closeRenewalTargetPicker(false);
           closeRangePopovers();
           closePeriodPopovers();
@@ -2589,6 +2724,33 @@
       });
     }
 
+    function toggleImportRenewalTargetHelp() {
+      if (activeModule !== renewalTargetModuleKey || els.importRenewalTargetControl.hidden) return;
+      importRenewalTargetHelpOpen = !importRenewalTargetHelpOpen;
+      if (importRenewalTargetHelpOpen) {
+        closeMonthPicker();
+        closeAddRenewalPeriodPicker();
+        closeRenewalTargetPicker(false);
+        closeRangePopovers();
+        closePeriodPopovers();
+      }
+      renderImportRenewalTargetHelp();
+    }
+
+    function renderImportRenewalTargetHelp() {
+      if (!els.importRenewalTargetHelpPopover || !els.importRenewalTargetHelpBtn) return;
+      els.importRenewalTargetHelpPopover.hidden = !importRenewalTargetHelpOpen;
+      els.importRenewalTargetHelpBtn.setAttribute("aria-expanded", String(importRenewalTargetHelpOpen));
+    }
+
+    function closeImportRenewalTargetHelp(shouldRender = true) {
+      if (!importRenewalTargetHelpOpen) return false;
+      importRenewalTargetHelpOpen = false;
+      renderImportRenewalTargetHelp();
+      if (shouldRender) render();
+      return true;
+    }
+
     function resetMonthFilter(label = "选择月份") {
       const caption = activeModule === renewalTargetModuleKey ? "筛选期次" : "筛选月份";
       els.filterCaption.textContent = caption;
@@ -2677,6 +2839,7 @@
       if (els.monthFilter.disabled) return;
       monthPickerOpen = !monthPickerOpen;
       closeAddRenewalPeriodPicker();
+      closeImportRenewalTargetHelp(false);
       closeRenewalTargetPicker(false);
       closeRangePopovers();
       closePeriodPopovers();
@@ -2706,6 +2869,7 @@
       addRenewalPeriodIds = [];
       addRenewalPeriodPickerOpen = !addRenewalPeriodPickerOpen;
       closeMonthPicker();
+      closeImportRenewalTargetHelp(false);
       closeRenewalTargetPicker(false);
       closeRangePopovers();
       closePeriodPopovers();
@@ -2738,6 +2902,7 @@
       closeMonthPicker();
       if (!nextMonthValueKey || nextMonthValueKey === activeMonth) return;
       activeMonth = nextMonthValueKey;
+      closeImportRenewalTargetHelp(false);
       closeRenewalTargetPicker(false);
       closeRangePopovers();
       closePeriodPopovers();
@@ -2749,6 +2914,7 @@
       if (!nextGroupKey) return;
       activeRenewalPeriodIds = [nextGroupKey];
       activeRenewalPeriodId = nextGroupKey;
+      closeImportRenewalTargetHelp(false);
       closeRenewalTargetPicker(false);
       render();
     }
@@ -2990,6 +3156,7 @@
       els.metricTemplateShelf.innerHTML = "";
 
       if (isLoadingRenewalTargets) {
+        hideRenewalTargetFloatingPopover();
         els.metricWrap.innerHTML = '<div class="empty-state">正在加载续报目标。</div>';
         return;
       }
@@ -2999,6 +3166,7 @@
       const rows = renewalTargetRowsForPeriod();
 
       if (!rows.length && readonly) {
+        hideRenewalTargetFloatingPopover();
         els.metricWrap.innerHTML = '<div class="empty-state">当前期次暂无续报目标。</div>';
         return;
       }
@@ -3017,19 +3185,22 @@
 
       rows.forEach((record) => {
         const row = document.createElement("div");
-        row.className = "renewal-target-row";
+        const openPickerField = openRenewalTargetPicker?.groupId === String(record.id)
+          ? openRenewalTargetPicker.field
+          : "";
+        row.className = `renewal-target-row${openPickerField ? " has-open-picker" : ""}`;
         row.dataset.id = record.id;
         row.innerHTML = `
-          <div class="cell renewal-target-grade-cell">
+          <div class="cell renewal-target-grade-cell${openPickerField === "grade" ? " renewal-target-cell-open" : ""}">
             <button class="drag-handle renewal-target-drag-handle" type="button" draggable="true" title="拖动排序" aria-label="拖动排序"${readonly ? " hidden disabled" : ""}>
               <span class="drag-grip" aria-hidden="true"></span>
             </button>
             ${renewalTargetTagPicker(record, "grade", "选择年级", renewalTargetGradeOptions(record), readonly)}
           </div>
-          <div class="cell">
+          <div class="cell${openPickerField === "classMode" ? " renewal-target-cell-open" : ""}">
             ${renewalTargetTagPicker(record, "classMode", "选择班型", renewalTargetClassModeOptions(record), readonly)}
           </div>
-          <div class="cell">
+          <div class="cell${openPickerField === "classVersion" ? " renewal-target-cell-open" : ""}">
             ${renewalTargetTagPicker(record, "classVersion", "选择版本", renewalTargetClassVersionOptions(record), readonly)}
           </div>
           ${renewalTargetRateFields.map((field) => `
@@ -3054,19 +3225,6 @@
               toggleRenewalTargetPicker(record.id, button.dataset.renewalPickerTrigger);
             });
           });
-          row.querySelectorAll(".renewal-tag-popover").forEach((popover) => {
-            popover.addEventListener("click", (event) => event.stopPropagation());
-          });
-          row.querySelectorAll("[data-renewal-tag-value]").forEach((button) => {
-            button.addEventListener("click", () => {
-              selectRenewalTargetValue(record.id, button.dataset.renewalTagField, button.dataset.renewalTagValue);
-            });
-          });
-          row.querySelectorAll("[data-renewal-tag-clear]").forEach((button) => {
-            button.addEventListener("click", () => {
-              selectRenewalTargetValue(record.id, button.dataset.renewalTagClear, "");
-            });
-          });
           row.querySelector(".row-action-button").addEventListener("click", () => softDeleteRenewalTargetRecord(record.id));
         }
         table.appendChild(row);
@@ -3085,6 +3243,7 @@
 
       els.metricWrap.innerHTML = "";
       els.metricWrap.appendChild(table);
+      renderRenewalTargetFloatingPopover();
     }
 
     function renewalTargetTagPicker(record, field, placeholder, options, readonly = false) {
@@ -3094,24 +3253,130 @@
       }
 
       return `
-        <span class="renewal-tag-picker" data-renewal-tag-picker="${escapeAttr(field)}">
-          <button class="renewal-tag-trigger" type="button" data-renewal-picker-trigger="${escapeAttr(field)}">
+        <span class="renewal-tag-picker${isRenewalTargetPickerOpen(record.id, field) ? " is-open" : ""}" data-renewal-tag-picker="${escapeAttr(field)}">
+          <button class="renewal-tag-trigger" type="button" data-renewal-picker-trigger="${escapeAttr(field)}" data-renewal-record-id="${escapeAttr(record.id)}">
             ${selectedValues.length ? renewalTargetSelectedTagsMarkup(selectedValues) : `<span class="renewal-tag-placeholder${field === "classVersion" ? " is-empty" : ""}">${escapeHtml(placeholder)}</span>`}
           </button>
-          <span class="renewal-tag-popover" ${isRenewalTargetPickerOpen(record.id, field) ? "" : "hidden"}>
-            ${field === "classVersion" && selectedValues.length ? `
-              <button class="renewal-tag-clear" type="button" data-renewal-tag-clear="${escapeAttr(field)}">清空版本</button>
-            ` : ""}
-            <span class="renewal-tag-options">
-              ${options.map((option) => `
-                <button class="renewal-tag-option${selectedValues.includes(option) ? " selected" : ""}" type="button" data-renewal-tag-field="${escapeAttr(field)}" data-renewal-tag-value="${escapeAttr(option)}">
-                  ${escapeHtml(option)}
-                </button>
-              `).join("")}
-            </span>
-          </span>
         </span>
       `;
+    }
+
+    function renderRenewalTargetFloatingPopover() {
+      const picker = openRenewalTargetPicker;
+      if (!picker || activeModule !== renewalTargetModuleKey || !els.renewalTargetPopover) {
+        hideRenewalTargetFloatingPopover();
+        return;
+      }
+
+      const record = renewalTargetRecords.find((item) => String(item.id) === picker.groupId && !item.delFlag);
+      if (!record) {
+        hideRenewalTargetFloatingPopover();
+        return;
+      }
+
+      const trigger = [...els.metricWrap.querySelectorAll("[data-renewal-picker-trigger]")].find((button) => {
+        return button.dataset.renewalRecordId === picker.groupId
+          && button.dataset.renewalPickerTrigger === picker.field;
+      });
+      if (!trigger) {
+        hideRenewalTargetFloatingPopover();
+        return;
+      }
+
+      const selectedValues = renewalTargetSelectedValues(record, picker.field);
+      const options = renewalTargetOptionsForField(record, picker.field);
+      els.renewalTargetPopover.innerHTML = renewalTargetPopoverMarkup(picker.field, selectedValues, options);
+      els.renewalTargetPopover.hidden = false;
+      positionRenewalTargetFloatingPopover(trigger);
+
+      els.renewalTargetPopover.querySelectorAll("[data-renewal-tag-value]").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectRenewalTargetValue(record.id, button.dataset.renewalTagField, button.dataset.renewalTagValue);
+        });
+      });
+      els.renewalTargetPopover.querySelectorAll("[data-renewal-tag-clear]").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectRenewalTargetValue(record.id, button.dataset.renewalTagClear, "");
+        });
+      });
+    }
+
+    function renewalTargetOptionsForField(record, field) {
+      if (field === "grade") return renewalTargetGradeOptions(record);
+      if (field === "classMode") return renewalTargetClassModeOptions(record);
+      if (field === "classVersion") return renewalTargetClassVersionOptions(record);
+      return [];
+    }
+
+    function renewalTargetPopoverMarkup(field, selectedValues, options) {
+      return `
+        ${field === "classVersion" && selectedValues.length ? `
+          <button class="renewal-tag-clear" type="button" data-renewal-tag-clear="${escapeAttr(field)}">清空版本</button>
+        ` : ""}
+        <span class="renewal-tag-options">
+          ${options.map((option) => `
+            <button class="renewal-tag-option${selectedValues.includes(option) ? " selected" : ""}" type="button" data-renewal-tag-field="${escapeAttr(field)}" data-renewal-tag-value="${escapeAttr(option)}">
+              ${escapeHtml(option)}
+            </button>
+          `).join("")}
+        </span>
+      `;
+    }
+
+    function positionRenewalTargetFloatingPopover(trigger) {
+      const popover = els.renewalTargetPopover;
+      if (!popover || popover.hidden) return;
+
+      const gap = 8;
+      const margin = 8;
+      const rect = trigger.getBoundingClientRect();
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      const availableBelow = viewportHeight - rect.bottom - gap - margin;
+      const availableAbove = rect.top - gap - margin;
+      const openBelow = availableBelow >= 160 || availableBelow >= availableAbove;
+      popover.style.maxHeight = "none";
+      const naturalHeight = popover.scrollHeight || 270;
+      const availableHeight = Math.max(
+        120,
+        Math.min(naturalHeight, openBelow ? availableBelow : availableAbove, viewportHeight - margin * 2)
+      );
+
+      popover.style.maxHeight = `${availableHeight}px`;
+      popover.style.width = `${Math.min(236, viewportWidth - margin * 2)}px`;
+
+      const popoverWidth = popover.offsetWidth || 236;
+      const popoverHeight = Math.min(popover.scrollHeight || availableHeight, availableHeight);
+      const left = Math.min(
+        Math.max(margin, rect.left),
+        Math.max(margin, viewportWidth - popoverWidth - margin)
+      );
+      const top = openBelow
+        ? Math.min(rect.bottom + gap, viewportHeight - popoverHeight - margin)
+        : Math.max(margin, rect.top - popoverHeight - gap);
+
+      popover.style.left = `${left}px`;
+      popover.style.top = `${top}px`;
+    }
+
+    function repositionRenewalTargetFloatingPopover() {
+      if (!openRenewalTargetPicker || !els.renewalTargetPopover || els.renewalTargetPopover.hidden) return;
+      const trigger = [...els.metricWrap.querySelectorAll("[data-renewal-picker-trigger]")].find((button) => {
+        return button.dataset.renewalRecordId === openRenewalTargetPicker.groupId
+          && button.dataset.renewalPickerTrigger === openRenewalTargetPicker.field;
+      });
+      if (trigger) {
+        positionRenewalTargetFloatingPopover(trigger);
+      } else {
+        hideRenewalTargetFloatingPopover();
+      }
+    }
+
+    function hideRenewalTargetFloatingPopover() {
+      if (!els.renewalTargetPopover) return;
+      els.renewalTargetPopover.hidden = true;
+      els.renewalTargetPopover.innerHTML = "";
+      els.renewalTargetPopover.removeAttribute("style");
     }
 
     function renewalTargetSelectedTagsMarkup(values) {
@@ -3173,6 +3438,7 @@
     function closeRenewalTargetPicker(shouldRender = true) {
       if (!openRenewalTargetPicker) return false;
       openRenewalTargetPicker = null;
+      hideRenewalTargetFloatingPopover();
       if (shouldRender) render();
       return true;
     }
@@ -3970,6 +4236,109 @@
       addRenewalTargetRow(targetPeriodIds, sourceRecord, "bottom");
     }
 
+    function triggerRenewalTargetImport() {
+      if (activeModule !== renewalTargetModuleKey) return;
+      if (!requireEditPermission()) return;
+      els.importRenewalTargetInput.value = "";
+      els.importRenewalTargetInput.click();
+    }
+
+    async function importRenewalTargetFile(file) {
+      if (!file || !requireEditPermission()) return;
+      isImportingRenewalTargets = true;
+      render();
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("fallbackPeriodIds", activeRenewalPeriodIds[0] || activeRenewalPeriodId || "");
+        const data = await postFormData(`${apiBase}/importRenewalTargets`, formData);
+        const payload = unwrapData(data) || {};
+        const result = applyImportedRenewalTargets(payload.records || []);
+        const errors = Array.isArray(payload.errors) ? payload.errors : [];
+        if (errors.length) console.warn("renewal target import skipped rows", errors);
+        const skippedText = errors.length ? `，${errors.length} 行未导入` : "";
+        showToast(`已导入 ${result.changed} 行${skippedText}，请检查后保存`, 2600);
+      } catch (error) {
+        console.error(error);
+        showToast(error.message || "导入失败，请检查 Excel 格式", 2600);
+      } finally {
+        isImportingRenewalTargets = false;
+        render();
+      }
+    }
+
+    function applyImportedRenewalTargets(importedRows) {
+      const normalizedRows = (Array.isArray(importedRows) ? importedRows : [])
+        .map(normalizeRenewalTargetRecord)
+        .filter(Boolean);
+      if (!normalizedRows.length) {
+        showToast("Excel 中没有可导入的续报目标");
+        return { changed: 0, added: 0, updated: 0 };
+      }
+
+      let added = 0;
+      let updated = 0;
+      const touchedGroupKeys = [];
+      normalizedRows.forEach((importedRecord, index) => {
+        const groupKey = ensureRenewalTargetGroupInFilter(renewalTargetPeriodIdsForRecord(importedRecord));
+        if (groupKey && !touchedGroupKeys.includes(groupKey)) touchedGroupKeys.push(groupKey);
+        const targetRecord = renewalTargetImportMatch(importedRecord);
+        if (targetRecord) {
+          updateRenewalTargetRecordFromImport(targetRecord, importedRecord, index);
+          updated += 1;
+          return;
+        }
+        renewalTargetRecords.push({
+          ...importedRecord,
+          id: makeId(),
+          sortOrder: normalizeSortOrder(importedRecord.sortOrder) || index + 1,
+          delFlag: 0
+        });
+        added += 1;
+      });
+
+      touchedGroupKeys.forEach((groupKey) => {
+        applyRenewalTargetOrder(renewalTargetRowsForPeriod([groupKey]));
+      });
+      if (touchedGroupKeys[0]) {
+        activeRenewalPeriodIds = [touchedGroupKeys[0]];
+        activeRenewalPeriodId = touchedGroupKeys[0];
+      }
+      closeMonthPicker();
+      closeAddRenewalPeriodPicker();
+      closeRenewalTargetPicker(false);
+      render();
+      return { changed: added + updated, added, updated };
+    }
+
+    function renewalTargetImportMatch(importedRecord) {
+      const importedGroupKey = renewalTargetGroupKeyForRecord(importedRecord);
+      const importedGrade = normalizeIntegerText(importedRecord.grade);
+      const importedMode = String(importedRecord.classMode || "").trim();
+      const importedVersion = String(importedRecord.classVersion || "").trim();
+      return renewalTargetRecords.find((record) => {
+        return renewalTargetGroupKeyForRecord(record) === importedGroupKey
+          && normalizeIntegerText(record.grade) === importedGrade
+          && String(record.classMode || "").trim() === importedMode
+          && String(record.classVersion || "").trim() === importedVersion;
+      }) || null;
+    }
+
+    function updateRenewalTargetRecordFromImport(targetRecord, importedRecord, index) {
+      targetRecord.renewalPeriodIds = renewalTargetPeriodIdsForRecord(importedRecord);
+      targetRecord.renewalPeriodId = targetRecord.renewalPeriodIds[0] || "";
+      targetRecord.renewalPeriodGroupKey = renewalTargetGroupKeyForRecord(importedRecord);
+      targetRecord.renewalPeriodName = importedRecord.renewalPeriodName || renewalTargetPeriodLabel(targetRecord.renewalPeriodId);
+      targetRecord.grade = normalizeIntegerText(importedRecord.grade);
+      targetRecord.classMode = String(importedRecord.classMode || "").trim();
+      targetRecord.classVersion = String(importedRecord.classVersion || "").trim();
+      renewalTargetRateFields.forEach((field) => {
+        targetRecord[field.key] = normalizeRateValue(importedRecord[field.key]);
+      });
+      targetRecord.sortOrder = normalizeSortOrder(importedRecord.sortOrder) || targetRecord.sortOrder || index + 1;
+      targetRecord.delFlag = 0;
+    }
+
     function createRenewalTargetRecord(periodIds = [], sourceRecord = null) {
       const renewalPeriodIds = normalizeRenewalPeriodIds(periodIds);
       const renewalPeriodGroupKey = normalizeRenewalPeriodGroupKey(renewalPeriodIds);
@@ -4191,6 +4560,7 @@
     }
 
     async function saveAll() {
+      if (isSavingConfiguration) return;
       if (activeModule === renewalTargetModuleKey) {
         await saveRenewalTargets();
         return;
@@ -4217,20 +4587,25 @@
           syncRecordPeriods(record);
         }
       });
+      isSavingConfiguration = true;
+      showToast("正在保存当前月配置...", 2200);
       render();
-
       try {
         await postJson(`${apiBase}/batchUpsert`, apiRows(activeMonth));
-        showToast("已保存当前月到数据库");
+        showToast("已保存当前月到数据库", 2600);
       } catch (error) {
         console.error(error);
-        showToast("保存接口失败，请检查后端连接");
+        showToast(error.message || "保存接口失败，请检查后端连接", 3200);
+      } finally {
+        isSavingConfiguration = false;
+        render();
       }
     }
 
     async function saveRenewalTargets() {
       if (!requireEditPermission()) return;
-      const activeRows = renewalTargetRecords.filter((record) => !record.delFlag);
+      const saveRecords = renewalTargetRecordsForActiveSave();
+      const activeRows = saveRecords.filter((record) => !record.delFlag);
       const invalid = activeRows.find((record) => {
         return !renewalTargetPeriodIdsForRecord(record).length
           || !normalizeIntegerText(record.grade)
@@ -4246,17 +4621,48 @@
         return;
       }
 
+      isSavingConfiguration = true;
+      showToast("正在保存续报目标...", 2200);
+      render();
       try {
-        await postJson(`${apiBase}/batchUpsert`, {
+        const response = await postJson(`${apiBase}/batchUpsert`, {
           moduleKey: renewalTargetModuleKey,
-          rows: renewalTargetApiRows()
-        });
-        showToast("已保存续报目标");
-        await loadRenewalTargetRows();
+          rows: renewalTargetApiRows(saveRecords)
+        }, 30000);
+        const result = unwrapData(response) || {};
+        const saved = Number(result.saved || 0);
+        const deleted = Number(result.deleted || 0);
+        const countText = saved || deleted ? `（保存 ${saved} 行，删除 ${deleted} 行）` : "";
+        showToast(`已保存续报目标${countText}`, 3200);
+        isSavingConfiguration = false;
+        render();
+        try {
+          await loadRenewalTargetRows();
+        } catch (refreshError) {
+          console.warn("refresh renewal target rows after save failed", refreshError);
+          showToast("已保存，但刷新列表失败，请手动刷新页面", 3600);
+        }
       } catch (error) {
         console.error(error);
-        showToast("续报目标保存失败，请检查后端连接");
+        showToast(error.message || "续报目标保存失败，请检查后端连接", 3600);
+      } finally {
+        isSavingConfiguration = false;
+        render();
       }
+    }
+
+    function renewalTargetRecordsForActiveSave() {
+      const activeGroupKeys = (activeRenewalPeriodIds.length
+        ? activeRenewalPeriodIds
+        : (activeRenewalPeriodId ? [activeRenewalPeriodId] : [])
+      ).map((value) => normalizeRenewalPeriodGroupKey(value)).filter(Boolean);
+      if (!activeGroupKeys.length) return renewalTargetRecords;
+      const activeGroupSet = new Set(activeGroupKeys);
+      return renewalTargetRecords.filter((record) => {
+        const currentGroupKey = renewalTargetGroupKeyForRecord(record);
+        const originalGroupKey = renewalTargetOriginalGroupKeyForRecord(record);
+        return activeGroupSet.has(currentGroupKey) || activeGroupSet.has(originalGroupKey);
+      });
     }
 
     function hasDuplicateRenewalTargetKeys(rows) {
@@ -4295,9 +4701,9 @@
       }));
     }
 
-    function renewalTargetApiRows() {
+    function renewalTargetApiRows(sourceRecords = renewalTargetRecords) {
       const rows = [];
-      renewalTargetRecords.forEach((record) => {
+      sourceRecords.forEach((record) => {
         const currentPeriodIds = renewalTargetPeriodIdsForRecord(record);
         const originalPeriodIds = renewalTargetOriginalPeriodIdsForRecord(record);
         const currentPeriodGroupKey = renewalTargetGroupKeyForRecord(record);
@@ -4378,19 +4784,52 @@
       return currentAdminId() || "";
     }
 
-    async function postJson(url, body) {
+    async function postJson(url, body, timeoutMs = 45000) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          signal: controller.signal,
+          body: JSON.stringify(body)
+        });
+        const isJson = response.headers.get("content-type")?.includes("application/json");
+        const payload = isJson ? await response.json() : await response.text();
+        if (!response.ok) {
+          throw new Error(responseErrorMessage(payload, `HTTP ${response.status}`));
+        }
+        return payload;
+      } catch (error) {
+        if (error.name === "AbortError") {
+          throw new Error("保存超时，请稍后重试或刷新后确认是否已保存");
+        }
+        throw error;
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function postFormData(url, body) {
       const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify(body)
+        body
       });
+      const isJson = response.headers.get("content-type")?.includes("application/json");
+      const payload = isJson ? await response.json() : await response.text();
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        throw new Error(responseErrorMessage(payload, `HTTP ${response.status}`));
       }
-      return response.headers.get("content-type")?.includes("application/json")
-        ? response.json()
-        : response.text();
+      return payload;
+    }
+
+    function responseErrorMessage(payload, fallback = "请求失败") {
+      if (payload && typeof payload === "object") {
+        return payload.message || payload.error || fallback;
+      }
+      return String(payload || fallback);
     }
 
     function nextMetricName(month) {
@@ -4491,16 +4930,31 @@
     }
 
     let toastTimer = null;
-    function showToast(message) {
+    function showToast(message, duration = 1800) {
       clearTimeout(toastTimer);
       els.toast.textContent = message;
       els.toast.classList.add("show");
-      toastTimer = setTimeout(() => els.toast.classList.remove("show"), 1800);
+      toastTimer = setTimeout(() => els.toast.classList.remove("show"), duration);
     }
 
     els.addMonthBtn.addEventListener("click", (event) => {
       event.stopPropagation();
       addMonth();
+    });
+    els.importRenewalTargetBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      triggerRenewalTargetImport();
+    });
+    els.importRenewalTargetHelpBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleImportRenewalTargetHelp();
+    });
+    els.importRenewalTargetHelpPopover.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+    els.importRenewalTargetInput.addEventListener("change", (event) => {
+      const file = event.target.files?.[0];
+      importRenewalTargetFile(file);
     });
     if (els.addMetricBtn) els.addMetricBtn.addEventListener("click", addMetric);
     els.monthFilter.addEventListener("click", (event) => {
@@ -4520,9 +4974,15 @@
     els.metricWrap.addEventListener("dragover", handleMetricWrapDragOver);
     els.metricWrap.addEventListener("dragleave", handleMetricWrapDragLeave);
     els.metricWrap.addEventListener("drop", handleMetricWrapDrop);
+    els.metricWrap.addEventListener("scroll", repositionRenewalTargetFloatingPopover);
+    els.renewalTargetPopover.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+    window.addEventListener("resize", repositionRenewalTargetFloatingPopover);
     document.addEventListener("click", () => {
       closeMonthPicker();
       closeAddRenewalPeriodPicker();
+      closeImportRenewalTargetHelp(false);
       const shouldRender = closeRenewalTargetPicker(false);
       closeRangePopovers();
       closePeriodPopovers();

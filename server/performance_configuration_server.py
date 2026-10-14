@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import hashlib
 import hmac
 import json
@@ -14,13 +16,17 @@ import secrets
 import sys
 import time
 import traceback
+import zipfile
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
+from email import policy
+from email.parser import BytesParser
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import unquote, urlparse
+from xml.etree import ElementTree as ET
 
 try:
     import psycopg2
@@ -40,6 +46,88 @@ RENEWAL_TARGET_MODULE_KEY = "renewalTarget"
 DUAL_PERIOD_MODULES = {"带生数", "刷题班带生数"}
 CONFIG_TYPE_MODULES = {"带生数", "刷题班带生数"}
 CONFIG_TYPE_VALUES = {"常规", "招生季"}
+DEFAULT_IMPORT_UPLOAD_BYTES = 10 * 1024 * 1024
+XLSX_NS = {"main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+OFFICE_REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+PACKAGE_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
+RENEWAL_TARGET_IMPORT_HEADERS = {
+    "renewalperiodid": "renewalPeriodIds",
+    "renewalperiodids": "renewalPeriodIds",
+    "periodid": "renewalPeriodIds",
+    "periodids": "renewalPeriodIds",
+    "renewal_period_id": "renewalPeriodIds",
+    "renewal_period_ids": "renewalPeriodIds",
+    "续报期id": "renewalPeriodIds",
+    "续报期ids": "renewalPeriodIds",
+    "续报期ID": "renewalPeriodIds",
+    "期次id": "renewalPeriodIds",
+    "期次ids": "renewalPeriodIds",
+    "期次ID": "renewalPeriodIds",
+    "periodgroupkey": "renewalPeriodGroupKey",
+    "renewalperiodgroupkey": "renewalPeriodGroupKey",
+    "renewal_period_group_key": "renewalPeriodGroupKey",
+    "续报期组合键": "renewalPeriodGroupKey",
+    "期次组合键": "renewalPeriodGroupKey",
+    "renewalperiodname": "renewalPeriodName",
+    "periodname": "renewalPeriodName",
+    "renewal_period_name": "renewalPeriodName",
+    "period_name": "renewalPeriodName",
+    "续报期": "renewalPeriodName",
+    "续报期名称": "renewalPeriodName",
+    "期次": "renewalPeriodName",
+    "期次名称": "renewalPeriodName",
+    "grade": "grade",
+    "classgrade": "grade",
+    "年级": "grade",
+    "班级年级": "grade",
+    "classmode": "classMode",
+    "class_mode": "classMode",
+    "班型": "classMode",
+    "班型名称": "classMode",
+    "classversion": "classVersion",
+    "class_version": "classVersion",
+    "版本": "classVersion",
+    "班型版本": "classVersion",
+    "allrate": "allRate",
+    "all_rate": "allRate",
+    "总目标率": "allRate",
+    "总目标": "allRate",
+    "整体目标率": "allRate",
+    "srate": "sRate",
+    "s_rate": "sRate",
+    "s档": "sRate",
+    "s档目标率": "sRate",
+    "s目标率": "sRate",
+    "s": "sRate",
+    "arate": "aRate",
+    "a_rate": "aRate",
+    "a档": "aRate",
+    "a档目标率": "aRate",
+    "a目标率": "aRate",
+    "a": "aRate",
+    "brate": "bRate",
+    "b_rate": "bRate",
+    "b档": "bRate",
+    "b档目标率": "bRate",
+    "b目标率": "bRate",
+    "b": "bRate",
+    "crate": "cRate",
+    "c_rate": "cRate",
+    "c档": "cRate",
+    "c档目标率": "cRate",
+    "c目标率": "cRate",
+    "c": "cRate",
+    "drate": "dRate",
+    "d_rate": "dRate",
+    "d档": "dRate",
+    "d档目标率": "dRate",
+    "d目标率": "dRate",
+    "d": "dRate",
+    "sortorder": "sortOrder",
+    "sort_order": "sortOrder",
+    "排序": "sortOrder",
+    "序号": "sortOrder",
+}
 
 
 def load_env_file(path: Path) -> None:
@@ -61,6 +149,10 @@ def env(name: str, default: str = "") -> str:
     return os.environ.get(name, default).strip()
 
 
+def import_upload_max_bytes() -> int:
+    return int(env("IMPORT_UPLOAD_MAX_BYTES", str(DEFAULT_IMPORT_UPLOAD_BYTES)) or str(DEFAULT_IMPORT_UPLOAD_BYTES))
+
+
 def require_identifier(value: str, fallback: str) -> str:
     text = (value or fallback).strip()
     if not IDENTIFIER_RE.match(text):
@@ -76,10 +168,349 @@ def parse_json_body(handler: BaseHTTPRequestHandler) -> Any:
     return json.loads(body) if body else {}
 
 
+def parse_multipart_body(handler: BaseHTTPRequestHandler) -> Dict[str, Any]:
+    content_type = handler.headers.get("Content-Type") or ""
+    if not content_type.lower().startswith("multipart/form-data"):
+        raise ValueError("请使用表单上传文件")
+
+    content_length = int(handler.headers.get("Content-Length") or 0)
+    if content_length <= 0:
+        raise ValueError("上传文件不能为空")
+    max_upload_bytes = import_upload_max_bytes()
+    if content_length > max_upload_bytes:
+        max_upload_mb = max(1, max_upload_bytes // (1024 * 1024))
+        raise ValueError(f"上传文件不能超过 {max_upload_mb}MB")
+
+    body = handler.rfile.read(content_length)
+    message = BytesParser(policy=policy.default).parsebytes(
+        f"Content-Type: {content_type}\r\nMIME-Version: 1.0\r\n\r\n".encode("utf-8") + body
+    )
+    fields: Dict[str, str] = {}
+    files: Dict[str, Dict[str, Any]] = {}
+    for part in message.iter_parts():
+        if part.get_content_disposition() != "form-data":
+            continue
+        name = part.get_param("name", header="content-disposition")
+        if not name:
+            continue
+        content = part.get_payload(decode=True) or b""
+        filename = part.get_filename()
+        if filename:
+            files[name] = {
+                "filename": filename,
+                "contentType": part.get_content_type(),
+                "content": content,
+            }
+        else:
+            charset = part.get_content_charset() or "utf-8"
+            fields[name] = content.decode(charset, errors="replace")
+    return {"fields": fields, "files": files}
+
+
 def json_default(value: Any) -> Any:
     if isinstance(value, (datetime, date)):
         return value.isoformat()
     return str(value)
+
+
+def clean_import_cell(value: Any) -> str:
+    text = str(value or "").replace("\u3000", " ").strip()
+    if not text:
+        return ""
+    return re.sub(r"\s+", " ", text)
+
+
+def normalize_import_header(value: Any) -> str:
+    text = clean_import_cell(value).lower()
+    text = text.replace("（", "(").replace("）", ")")
+    text = re.sub(r"\([^)]*\)", "", text)
+    return re.sub(r"[\s_\-./\\:：]+", "", text)
+
+
+def import_header_key(value: Any) -> str:
+    normalized = normalize_import_header(value)
+    if normalized in RENEWAL_TARGET_IMPORT_HEADERS:
+        return RENEWAL_TARGET_IMPORT_HEADERS[normalized]
+    underscored = clean_import_cell(value).strip()
+    return RENEWAL_TARGET_IMPORT_HEADERS.get(underscored, "")
+
+
+def import_integer_text(value: Any) -> str:
+    text = clean_import_cell(value)
+    if not text:
+        return ""
+    match = re.search(r"-?\d+(?:\.0+)?", text)
+    if not match:
+        return ""
+    number_text = match.group(0)
+    if "." in number_text:
+        number_text = number_text.split(".", 1)[0]
+    return str(int(number_text))
+
+
+def import_sort_order(value: Any, fallback: int) -> int:
+    text = import_integer_text(value)
+    return int(text) if text else fallback
+
+
+def parse_import_period_ids(value: Any) -> List[int]:
+    text = clean_import_cell(value)
+    if not text:
+        return []
+    ids: List[int] = []
+    for part in re.split(r"[+＋,，、/;\s]+", text):
+        period_id_text = import_integer_text(part)
+        if not period_id_text:
+            continue
+        period_id = int(period_id_text)
+        if period_id not in ids:
+            ids.append(period_id)
+    return sorted(ids, reverse=True)
+
+
+def import_rate_text(value: Any) -> str:
+    text = clean_import_cell(value)
+    if not text:
+        return ""
+    return text.replace("％", "%")
+
+
+def decode_csv_upload(content: bytes) -> List[List[str]]:
+    for encoding in ("utf-8-sig", "gb18030"):
+        try:
+            text = content.decode(encoding)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        text = content.decode("utf-8", errors="replace")
+    return [[clean_import_cell(cell) for cell in row] for row in csv.reader(io.StringIO(text))]
+
+
+def xlsx_shared_strings(archive: zipfile.ZipFile) -> List[str]:
+    if "xl/sharedStrings.xml" not in archive.namelist():
+        return []
+    root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
+    shared_strings = []
+    for item in root.findall("main:si", XLSX_NS):
+        text_parts = [
+            text_node.text or ""
+            for text_node in item.findall(".//main:t", XLSX_NS)
+        ]
+        shared_strings.append("".join(text_parts))
+    return shared_strings
+
+
+def xlsx_first_sheet_path(archive: zipfile.ZipFile) -> str:
+    names = set(archive.namelist())
+    if "xl/workbook.xml" not in names:
+        return "xl/worksheets/sheet1.xml"
+
+    workbook = ET.fromstring(archive.read("xl/workbook.xml"))
+    sheet = workbook.find(".//main:sheet", {**XLSX_NS, "r": OFFICE_REL_NS})
+    relationship_id = sheet.attrib.get(f"{{{OFFICE_REL_NS}}}id") if sheet is not None else ""
+    if not relationship_id or "xl/_rels/workbook.xml.rels" not in names:
+        return "xl/worksheets/sheet1.xml"
+
+    relationships = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
+    for relationship in relationships.findall(f"{{{PACKAGE_REL_NS}}}Relationship"):
+        if relationship.attrib.get("Id") != relationship_id:
+            continue
+        target = relationship.attrib.get("Target", "")
+        if target.startswith("/"):
+            return target.lstrip("/")
+        return str(Path("xl") / target).replace("\\", "/")
+    return "xl/worksheets/sheet1.xml"
+
+
+def xlsx_column_index(cell_reference: str) -> int:
+    match = re.match(r"([A-Z]+)", str(cell_reference or "").upper())
+    if not match:
+        return 0
+    index = 0
+    for char in match.group(1):
+        index = index * 26 + ord(char) - ord("A") + 1
+    return max(index - 1, 0)
+
+
+def xlsx_cell_text(cell: ET.Element, shared_strings: List[str]) -> str:
+    cell_type = cell.attrib.get("t", "")
+    if cell_type == "inlineStr":
+        text_parts = [
+            text_node.text or ""
+            for text_node in cell.findall(".//main:t", XLSX_NS)
+        ]
+        return clean_import_cell("".join(text_parts))
+
+    value_node = cell.find("main:v", XLSX_NS)
+    value = value_node.text if value_node is not None else ""
+    if cell_type == "s":
+        index = as_int(value)
+        return clean_import_cell(shared_strings[index] if index is not None and 0 <= index < len(shared_strings) else "")
+    if cell_type == "str":
+        return clean_import_cell(value)
+    return clean_import_cell(value)
+
+
+def decode_xlsx_upload(content: bytes) -> List[List[str]]:
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            sheet_path = xlsx_first_sheet_path(archive)
+            if sheet_path not in archive.namelist():
+                raise ValueError("Excel 文件缺少工作表")
+            shared_strings = xlsx_shared_strings(archive)
+            root = ET.fromstring(archive.read(sheet_path))
+            rows: List[List[str]] = []
+            for row in root.findall(".//main:sheetData/main:row", XLSX_NS):
+                values: List[str] = []
+                for cell in row.findall("main:c", XLSX_NS):
+                    index = xlsx_column_index(cell.attrib.get("r", ""))
+                    while len(values) <= index:
+                        values.append("")
+                    values[index] = xlsx_cell_text(cell, shared_strings)
+                rows.append(values)
+            return rows
+    except zipfile.BadZipFile as exc:
+        raise ValueError("请上传 .xlsx 文件，或先把 .xls 另存为 .xlsx") from exc
+
+
+def import_table_from_upload(filename: str, content: bytes) -> List[List[str]]:
+    suffix = Path(filename or "").suffix.lower()
+    if suffix == ".csv":
+        return decode_csv_upload(content)
+    if suffix == ".xlsx":
+        return decode_xlsx_upload(content)
+    if suffix == ".xls":
+        raise ValueError("暂不支持旧版 .xls，请另存为 .xlsx 后导入")
+    raise ValueError("仅支持导入 .xlsx 或 .csv 文件")
+
+
+def period_name_lookup(options: List[Dict[str, Any]]) -> Dict[str, List[int]]:
+    lookup: Dict[str, List[int]] = {}
+    for option in options:
+        period_id = as_int(option.get("id"))
+        period_name = clean_import_cell(option.get("periodName") or option.get("period_name") or "")
+        if period_id is None or not period_name:
+            continue
+        lookup[period_name] = [period_id]
+        lookup[normalize_import_header(period_name)] = [period_id]
+    return lookup
+
+
+def resolve_import_period_ids_from_name(value: Any, lookup: Dict[str, List[int]]) -> List[int]:
+    text = clean_import_cell(value)
+    if not text:
+        return []
+    if text in lookup:
+        return lookup[text]
+    normalized = normalize_import_header(text)
+    if normalized in lookup:
+        return lookup[normalized]
+
+    ids: List[int] = []
+    for part in re.split(r"[+＋,，、/;]", text):
+        name = clean_import_cell(part)
+        if not name:
+            continue
+        matched_ids = lookup.get(name) or lookup.get(normalize_import_header(name)) or []
+        for period_id in matched_ids:
+            if period_id not in ids:
+                ids.append(period_id)
+    return sorted(ids, reverse=True)
+
+
+def renewal_period_name_for_ids(period_ids: List[int], options: List[Dict[str, Any]]) -> str:
+    name_by_id = {
+        as_int(option.get("id")): clean_import_cell(option.get("periodName") or option.get("period_name") or "")
+        for option in options
+    }
+    names = [name_by_id.get(period_id) or str(period_id) for period_id in period_ids]
+    return "+".join(names)
+
+
+def parse_renewal_target_import_rows(
+    table_rows: List[List[str]],
+    fallback_period_ids: List[int],
+    period_options: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    header_candidates = [
+        (index, [import_header_key(header) for header in row])
+        for index, row in enumerate(table_rows)
+        if any(clean_import_cell(cell) for cell in row)
+    ]
+    if not header_candidates:
+        raise ValueError("导入文件没有可读取的数据")
+    header_match = next(
+        ((index, keys) for index, keys in header_candidates if any(keys)),
+        None,
+    )
+    if header_match is None:
+        raise ValueError("未识别到表头，请使用：续报期ID、年级、班型、版本、总目标率、S档、A档、B档、C档、D档")
+    header_index, header_keys = header_match
+
+    imported_rows: List[Dict[str, Any]] = []
+    errors: List[str] = []
+    name_lookup = period_name_lookup(period_options)
+    row_count = 0
+    for row_number, row in enumerate(table_rows[header_index + 1 :], start=header_index + 2):
+        if not any(clean_import_cell(cell) for cell in row):
+            continue
+        row_count += 1
+        raw: Dict[str, str] = {}
+        for index, key in enumerate(header_keys):
+            if key and index < len(row):
+                raw[key] = clean_import_cell(row[index])
+
+        period_ids = (
+            parse_import_period_ids(raw.get("renewalPeriodIds"))
+            or parse_import_period_ids(raw.get("renewalPeriodGroupKey"))
+            or resolve_import_period_ids_from_name(raw.get("renewalPeriodName"), name_lookup)
+            or fallback_period_ids
+        )
+        grade = import_integer_text(raw.get("grade"))
+        class_mode = clean_import_cell(raw.get("classMode"))
+        missing = []
+        if not period_ids:
+            missing.append("续报期")
+        if not grade:
+            missing.append("年级")
+        if not class_mode:
+            missing.append("班型")
+        if missing:
+            errors.append(f"第 {row_number} 行缺少 {', '.join(missing)}")
+            continue
+
+        group_key = normalize_renewal_period_group_key(period_ids)
+        imported_rows.append(
+            {
+                "renewalPeriodIds": [str(period_id) for period_id in period_ids],
+                "renewalPeriodId": str(period_ids[0]),
+                "renewalPeriodGroupKey": group_key,
+                "renewalPeriodName": renewal_period_name_for_ids(period_ids, period_options),
+                "grade": grade,
+                "classMode": class_mode,
+                "classVersion": clean_import_cell(raw.get("classVersion")),
+                "allRate": import_rate_text(raw.get("allRate")),
+                "sRate": import_rate_text(raw.get("sRate")),
+                "aRate": import_rate_text(raw.get("aRate")),
+                "bRate": import_rate_text(raw.get("bRate")),
+                "cRate": import_rate_text(raw.get("cRate")),
+                "dRate": import_rate_text(raw.get("dRate")),
+                "sortOrder": import_sort_order(raw.get("sortOrder"), len(imported_rows) + 1),
+                "delFlag": 0,
+            }
+        )
+
+    if not imported_rows:
+        detail = errors[0] if errors else "没有可导入的续报目标行"
+        raise ValueError(detail)
+    return {
+        "records": imported_rows,
+        "errors": errors,
+        "totalRows": row_count,
+        "importedRows": len(imported_rows),
+    }
+
 
 
 def normalize_month(value: Any) -> str:
@@ -1210,6 +1641,7 @@ class PerformanceConfigurationHandler(BaseHTTPRequestHandler):
             "/data_set/performance/configuration/adminUserInfo": self.handle_admin_user_info,
             "/data_set/performance/configuration/batchUpsert": self.handle_batch_upsert,
             "/data_set/performance/configuration/delete": self.handle_delete,
+            "/data_set/performance/configuration/importRenewalTargets": self.handle_import_renewal_targets,
         }
         handler = routes.get(parsed.path)
         if handler is None:
@@ -1217,7 +1649,7 @@ class PerformanceConfigurationHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            payload = parse_json_body(self)
+            payload = parse_multipart_body(self) if parsed.path.endswith("/importRenewalTargets") else parse_json_body(self)
             if parsed.path not in {
                 "/data_set/performance/configuration/login",
                 "/data_set/performance/configuration/logout",
@@ -1229,6 +1661,7 @@ class PerformanceConfigurationHandler(BaseHTTPRequestHandler):
                 if parsed.path in {
                     "/data_set/performance/configuration/batchUpsert",
                     "/data_set/performance/configuration/delete",
+                    "/data_set/performance/configuration/importRenewalTargets",
                 } and not user.get("canEdit"):
                     self.send_error_json(HTTPStatus.FORBIDDEN, "暂无编辑权限")
                     return
@@ -1294,6 +1727,19 @@ class PerformanceConfigurationHandler(BaseHTTPRequestHandler):
     def handle_delete(self, payload: Dict[str, Any]) -> None:
         body = payload if isinstance(payload, dict) else {}
         self.send_json(self.repository.logical_delete(body, self.operator_id()))
+
+    def handle_import_renewal_targets(self, payload: Dict[str, Any]) -> None:
+        body = payload if isinstance(payload, dict) else {}
+        files = body.get("files") or {}
+        fields = body.get("fields") or {}
+        upload = files.get("file")
+        if not upload:
+            raise ValueError("请选择要导入的 Excel 文件")
+
+        fallback_period_ids = parse_import_period_ids(fields.get("fallbackPeriodIds"))
+        table_rows = import_table_from_upload(upload.get("filename") or "", upload.get("content") or b"")
+        period_options = self.repository.renewal_period_options()
+        self.send_json(parse_renewal_target_import_rows(table_rows, fallback_period_ids, period_options))
 
     def operator_id(self) -> Optional[int]:
         user = self.current_session_user()
@@ -1419,7 +1865,7 @@ def main() -> None:
     public_url = env("PUBLIC_URL", f"http://{args.host}:{args.port}").rstrip("/")
     app_name = env("APP_NAME", "绩效配置")
     print(f"{app_name} 服务已启动: {public_url}/performance-configuration.html")
-    print("API: /data_set/performance/configuration/login /me /list /periodOptions /adminUserInfo /batchUpsert /delete")
+    print("API: /data_set/performance/configuration/login /me /list /periodOptions /adminUserInfo /batchUpsert /delete /importRenewalTargets")
     try:
         server.serve_forever()
     finally:
