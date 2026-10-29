@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS bi.bi_renewal_target_rate (
   grade bigint,
   class_mode text,
   class_version text,
+  subject bigint,
   all_rate numeric(38, 10),
   s_rate numeric(38, 10),
   a_rate numeric(38, 10),
@@ -15,6 +16,9 @@ CREATE TABLE IF NOT EXISTS bi.bi_renewal_target_rate (
   sort_order integer DEFAULT 0,
   del_flag smallint NOT NULL DEFAULT 0
 );
+
+ALTER TABLE bi.bi_renewal_target_rate
+  ADD COLUMN IF NOT EXISTS subject bigint;
 
 ALTER TABLE bi.bi_renewal_target_rate
   ADD COLUMN IF NOT EXISTS sort_order integer DEFAULT 0;
@@ -43,6 +47,7 @@ ALTER TABLE bi.bi_renewal_target_rate
 
 COMMENT ON TABLE bi.bi_renewal_target_rate IS '续报目标率配置表';
 COMMENT ON COLUMN bi.bi_renewal_target_rate.renewal_period_id IS '续报期 ID';
+COMMENT ON COLUMN bi.bi_renewal_target_rate.subject IS '科目：3 数学，5 物理';
 COMMENT ON COLUMN bi.bi_renewal_target_rate.grade IS '年级';
 COMMENT ON COLUMN bi.bi_renewal_target_rate.class_mode IS '班型';
 COMMENT ON COLUMN bi.bi_renewal_target_rate.class_version IS '版本';
@@ -57,4 +62,4 @@ COMMENT ON COLUMN bi.bi_renewal_target_rate.sort_order IS '同一期次下的目
 COMMENT ON COLUMN bi.bi_renewal_target_rate.del_flag IS '逻辑删除标记，0 未删除，1 已删除';
 
 -- The application treats the following columns as the natural key:
--- renewal_period_group_key + renewal_period_id + grade + class_mode + class_version
+-- renewal_period_group_key + renewal_period_id + grade + class_mode + class_version + subject

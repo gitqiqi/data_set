@@ -51,6 +51,8 @@ XLSX_NS = {"main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 OFFICE_REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 PACKAGE_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 RENEWAL_TARGET_IMPORT_HEADERS = {
+    "subject": "subject",
+    "科目": "subject",
     "renewalperiodid": "renewalPeriodIds",
     "renewalperiodids": "renewalPeriodIds",
     "periodid": "renewalPeriodIds",
@@ -218,6 +220,16 @@ def clean_import_cell(value: Any) -> str:
     if not text:
         return ""
     return re.sub(r"\s+", " ", text)
+
+
+def normalize_target_subject(value: Any) -> str:
+    text = clean_import_cell(value)
+    if not text:
+        return ""
+    subject = {"数学": "3", "物理": "5", "3": "3", "5": "5", "3.0": "3", "5.0": "5"}.get(text)
+    if subject is None:
+        raise ValueError("科目仅支持数学（3）或物理（5）")
+    return subject
 
 
 def normalize_import_header(value: Any) -> str:
@@ -445,7 +457,7 @@ def parse_renewal_target_import_rows(
         None,
     )
     if header_match is None:
-        raise ValueError("未识别到表头，请使用：续报期ID、年级、班型、版本、总目标率、S档、A档、B档、C档、D档")
+        raise ValueError("未识别到表头，请使用：续报期ID、年级、班型、版本、科目、总目标率、S档、A档、B档、C档、D档")
     header_index, header_keys = header_match
 
     imported_rows: List[Dict[str, Any]] = []
@@ -480,6 +492,11 @@ def parse_renewal_target_import_rows(
             errors.append(f"第 {row_number} 行缺少 {', '.join(missing)}")
             continue
 
+        try:
+            subject = normalize_target_subject(raw.get("subject"))
+        except ValueError as exc:
+            errors.append(f"第 {row_number} 行{exc}")
+            continue
         group_key = normalize_renewal_period_group_key(period_ids)
         imported_rows.append(
             {
@@ -490,6 +507,7 @@ def parse_renewal_target_import_rows(
                 "grade": grade,
                 "classMode": class_mode,
                 "classVersion": clean_import_cell(raw.get("classVersion")),
+                "subject": subject,
                 "allRate": import_rate_text(raw.get("allRate")),
                 "sRate": import_rate_text(raw.get("sRate")),
                 "aRate": import_rate_text(raw.get("aRate")),
@@ -955,6 +973,7 @@ class PerformanceConfigurationRepository:
           period.period_name AS renewal_period_name,
           {period_group_key_select} AS renewal_period_group_key,
           target.grade,
+          COALESCE(CAST(target.subject AS text), '') AS subject,
           COALESCE(target.class_mode, '') AS class_mode,
           COALESCE(target.class_version, '') AS class_version,
           target.all_rate,
@@ -1355,6 +1374,7 @@ class PerformanceConfigurationRepository:
           grade = %s,
           class_mode = %s,
           class_version = %s,
+          subject = %s,
           all_rate = %s,
           s_rate = %s,
           a_rate = %s,
@@ -1368,6 +1388,7 @@ class PerformanceConfigurationRepository:
           AND grade = %s
           AND COALESCE(class_mode, '') = %s
           AND COALESCE(class_version, '') = %s
+          AND COALESCE(CAST(subject AS text), '') = %s
         """
         insert_sql = f"""
         INSERT INTO {self.qualified_renewal_target_table} (
@@ -1375,6 +1396,7 @@ class PerformanceConfigurationRepository:
           grade,
           class_mode,
           class_version,
+          subject,
           all_rate,
           s_rate,
           a_rate,
@@ -1385,7 +1407,7 @@ class PerformanceConfigurationRepository:
           {sort_order_column}
           {del_flag_column}
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s{period_group_key_value}{sort_order_value}{del_flag_value})
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s{period_group_key_value}{sort_order_value}{del_flag_value})
         """
         delete_sql = None
         if has_del_flag:
@@ -1396,6 +1418,7 @@ class PerformanceConfigurationRepository:
               AND grade = %s
               AND COALESCE(class_mode, '') = %s
               AND COALESCE(class_version, '') = %s
+              AND COALESCE(CAST(subject AS text), '') = %s
               AND COALESCE(del_flag, 0) = 0
             """
 
@@ -1491,6 +1514,7 @@ class PerformanceConfigurationRepository:
           AND grade = %s
           AND COALESCE(class_mode, '') = %s
           AND COALESCE(class_version, '') = %s
+          AND COALESCE(CAST(subject AS text), '') = %s
           AND COALESCE(del_flag, 0) = 0
         """
         with self.with_connection() as conn:
@@ -1541,7 +1565,8 @@ class PerformanceConfigurationRepository:
 
         class_mode = str(first_value(row, "classMode", "class_mode", default="")).strip()
         class_version = str(first_value(row, "classVersion", "class_version", default="")).strip()
-        key = (renewal_period_id, grade, class_mode, class_version)
+        subject = normalize_target_subject(first_value(row, "subject", default=""))
+        key = (renewal_period_id, grade, class_mode, class_version, subject)
         period_group_key = normalize_renewal_period_group_key(
             first_value(
                 row,
@@ -1558,9 +1583,10 @@ class PerformanceConfigurationRepository:
         original_grade = as_int(first_value(row, "originalGrade", "original_grade", default=None))
         original_class_mode = str(first_value(row, "originalClassMode", "original_class_mode", default=class_mode)).strip()
         original_class_version = str(first_value(row, "originalClassVersion", "original_class_version", default=class_version)).strip()
+        original_subject = normalize_target_subject(first_value(row, "originalSubject", "original_subject", default=subject))
         original_key = None
         if original_period_id is not None and original_grade is not None:
-            original_key = (original_period_id, original_grade, original_class_mode, original_class_version)
+            original_key = (original_period_id, original_grade, original_class_mode, original_class_version, original_subject)
         original_period_group_key = normalize_renewal_period_group_key(
             first_value(
                 row,
@@ -1578,6 +1604,7 @@ class PerformanceConfigurationRepository:
             grade,
             class_mode,
             class_version,
+            int(subject) if subject else None,
             parse_decimal(first_value(row, "allRate", "all_rate", default=None)),
             parse_decimal(first_value(row, "sRate", "s_rate", default=None)),
             parse_decimal(first_value(row, "aRate", "a_rate", default=None)),

@@ -35,7 +35,7 @@ book.db_renewal_period
 
 页面会将每组显示为一个组合期次，目标行按相同配置合并展示；底层仍保留每个原始 `renewal_period_id` 的记录，保存时分别更新，便于追溯。可复用的历史归并脚本见 [renewal_target_rate_merge.sql](/Users/cherry/Project/data_set/db/renewal_target_rate_merge.sql)。
 
-续报目标按「期次组合 + 年级 + 班型 + 版本」明细展示；同一组合内可拖拽调整目标行顺序，顺序保存到目标表的 `sort_order`。删除目标使用 `del_flag = 1` 逻辑删除，列表只展示 `del_flag = 0` 的数据；重新配置相同自然键时会恢复为 `del_flag = 0`。已有目标表需要先执行 [renewal_target_rate.sql](/Users/cherry/Project/data_set/db/renewal_target_rate.sql) 的字段迁移。
+续报目标按「期次组合 + 年级 + 班型 + 版本 + 科目」明细展示；同一组合内可拖拽调整目标行顺序，顺序保存到目标表的 `sort_order`。删除目标使用 `del_flag = 1` 逻辑删除，列表只展示 `del_flag = 0` 的数据；重新配置相同自然键时会恢复为 `del_flag = 0`。已有目标表需要先执行 [renewal_target_rate.sql](/Users/cherry/Project/data_set/db/renewal_target_rate.sql) 的字段迁移。
 
 前端切换到“续报目标”时会在请求体里传：
 
@@ -364,7 +364,7 @@ renewal_period_group_key + renewal_period_id + grade + class_mode + class_versio
 }
 ```
 
-续报目标支持先导入 Excel，再在页面检查和保存。导入接口只解析文件并返回草稿数据，不直接落库；页面会按「期次组合 + 年级 + 班型 + 版本」覆盖当前草稿里的同键行，找不到同键行时追加，最后仍由 `/batchUpsert` 保存。
+续报目标支持先导入 Excel，再在页面检查和保存。导入接口只解析文件并返回草稿数据，不直接落库；页面会按「期次组合 + 年级 + 班型 + 版本 + 科目」覆盖当前草稿里的同键行，找不到同键行时追加，最后仍由 `/batchUpsert` 保存。
 
 ```http
 POST /data_set/performance/configuration/importRenewalTargets
@@ -418,3 +418,5 @@ Excel 首行表头可使用：
   "importedRows": 1
 }
 ```
+
+续报目标支持可选字段 `subject`（科目），前端单选数学或物理，数据库编码为 `3`（数学）、`5`（物理）。Excel/CSV 导入表头支持“科目”或 `subject`，支持科目名称或编码，非法科目会提示错误；缺省为空，保存到 `bi.bi_renewal_target_rate.subject`。科目参与目标行匹配，修改时通过 `originalSubject` 定位原记录。已有表缺少该字段时，先执行 `db/renewal_target_rate.sql` 中的 `ADD COLUMN IF NOT EXISTS subject bigint`。

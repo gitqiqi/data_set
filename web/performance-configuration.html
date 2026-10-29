@@ -698,9 +698,9 @@
     }
 
     .renewal-target-table {
-      min-width: 1144px;
+      min-width: 1264px;
       display: grid;
-      grid-template-columns: 154px 170px 180px repeat(6, minmax(86px, 1fr)) 72px;
+      grid-template-columns: 120px 154px 170px 180px repeat(6, minmax(86px, 1fr)) 72px;
     }
 
     .table-head,
@@ -886,11 +886,11 @@
       padding-inline: 10px;
     }
 
-    .renewal-target-table:not(.is-readonly) > .table-head > div:first-child {
+    .renewal-target-table:not(.is-readonly) > .table-head > div:nth-child(2) {
       padding-left: 38px;
     }
 
-    .renewal-target-table.is-readonly > .table-head > div:first-child {
+    .renewal-target-table.is-readonly > .table-head > div:nth-child(2) {
       padding-left: 10px;
     }
 
@@ -1752,10 +1752,10 @@
                     <span class="import-help-list">
                       <span><b>必填：</b>年级、班型。</span>
                       <span><b>建议填写：</b>续报期ID 或 期次ID。不填时使用当前筛选期次。</span>
-                      <span><b>可选：</b>版本、总目标率、S档、A档、B档、C档、D档、排序。</span>
+                      <span><b>可选：</b>科目（数学/物理，或编码3/5）、版本、总目标率、S档、A档、B档、C档、D档、排序。</span>
                       <span><b>文件：</b>支持 .xlsx / .csv；.xls 先另存为 .xlsx。</span>
                     </span>
-                    <span class="import-help-example">表头示例：续报期ID、年级、班型、版本、总目标率、S档、A档、B档、C档、D档、排序</span>
+                    <span class="import-help-example">表头示例：续报期ID、年级、班型、版本、科目、总目标率、S档、A档、B档、C档、D档、排序</span>
                   </span>
                   <input id="importRenewalTargetInput" type="file" accept=".xlsx,.csv" hidden>
                 </span>
@@ -2059,6 +2059,7 @@
         grade,
         classMode: String(record.classMode ?? record.class_mode ?? "").trim(),
         classVersion: String(record.classVersion ?? record.class_version ?? "").trim(),
+        subject: normalizeTargetSubject(record.subject),
         allRate: normalizeRateValue(record.allRate ?? record.all_rate),
         sRate: normalizeRateValue(record.sRate ?? record.s_rate),
         aRate: normalizeRateValue(record.aRate ?? record.a_rate),
@@ -2091,6 +2092,7 @@
         originalGrade: normalizeIntegerText(record.originalGrade ?? record.original_grade) || grade,
         originalClassMode: String(record.originalClassMode ?? record.original_class_mode ?? normalized.classMode).trim(),
         originalClassVersion: String(record.originalClassVersion ?? record.original_class_version ?? normalized.classVersion).trim(),
+        originalSubject: normalizeTargetSubject(record.originalSubject ?? record.original_subject ?? normalized.subject),
         originalKey: record.originalKey || key
       };
     }
@@ -2127,6 +2129,7 @@
         normalizeIntegerText(record?.grade),
         String(record?.classMode ?? "").trim(),
         String(record?.classVersion ?? "").trim(),
+        String(record?.subject ?? "").trim(),
         normalizeRateValue(record?.allRate),
         normalizeRateValue(record?.sRate),
         normalizeRateValue(record?.aRate),
@@ -2276,13 +2279,19 @@
       return text.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
     }
 
+    function normalizeTargetSubject(value) {
+      const text = String(value ?? "").trim();
+      return ({ "数学": "3", "物理": "5", "3.0": "3", "5.0": "5" })[text] ?? text;
+    }
+
     function renewalTargetKey(record, periodId = null) {
       return [
         renewalTargetGroupKeyForRecord(record),
         normalizeIntegerText(periodId || record?.renewalPeriodId),
         normalizeIntegerText(record?.grade),
         String(record?.classMode ?? "").trim(),
-        String(record?.classVersion ?? "").trim()
+        String(record?.classVersion ?? "").trim(),
+        String(record?.subject ?? "").trim()
       ].join("||");
     }
 
@@ -3175,6 +3184,7 @@
       table.className = `renewal-target-table${readonly ? " is-readonly" : ""}`;
       table.innerHTML = `
         <div class="table-head">
+          <div>科目</div>
           <div>年级</div>
           <div>班型</div>
           <div>版本</div>
@@ -3191,6 +3201,13 @@
         row.className = `renewal-target-row${openPickerField ? " has-open-picker" : ""}`;
         row.dataset.id = record.id;
         row.innerHTML = `
+          <div class="cell">
+            <select class="select" data-renewal-field="subject" aria-label="科目"${readonly ? " disabled" : ""}>
+              <option value=""${!record.subject ? " selected" : ""}>选择科目</option>
+              <option value="3"${record.subject === "3" ? " selected" : ""}>数学</option>
+              <option value="5"${record.subject === "5" ? " selected" : ""}>物理</option>
+            </select>
+          </div>
           <div class="cell renewal-target-grade-cell${openPickerField === "grade" ? " renewal-target-cell-open" : ""}">
             <button class="drag-handle renewal-target-drag-handle" type="button" draggable="true" title="拖动排序" aria-label="拖动排序"${readonly ? " hidden disabled" : ""}>
               <span class="drag-grip" aria-hidden="true"></span>
@@ -3463,7 +3480,7 @@
         return;
       }
       if (hasRenewalTargetRecordConflict(record, field, value)) {
-        showToast("该期次下的年级、班型、版本组合已存在");
+        showToast("该期次下的年级、班型、版本、科目组合已存在");
         return;
       }
       record[field] = value;
@@ -4320,7 +4337,8 @@
         return renewalTargetGroupKeyForRecord(record) === importedGroupKey
           && normalizeIntegerText(record.grade) === importedGrade
           && String(record.classMode || "").trim() === importedMode
-          && String(record.classVersion || "").trim() === importedVersion;
+          && String(record.classVersion || "").trim() === importedVersion
+          && String(record.subject || "").trim() === String(importedRecord.subject || "").trim();
       }) || null;
     }
 
@@ -4332,6 +4350,7 @@
       targetRecord.grade = normalizeIntegerText(importedRecord.grade);
       targetRecord.classMode = String(importedRecord.classMode || "").trim();
       targetRecord.classVersion = String(importedRecord.classVersion || "").trim();
+      targetRecord.subject = normalizeTargetSubject(importedRecord.subject);
       renewalTargetRateFields.forEach((field) => {
         targetRecord[field.key] = normalizeRateValue(importedRecord[field.key]);
       });
@@ -4352,6 +4371,7 @@
         grade: source?.grade || "",
         classMode: source?.classMode || "",
         classVersion: source?.classVersion || "",
+        subject: source?.subject || "",
         allRate: source?.allRate || "",
         sRate: source?.sRate || "",
         aRate: source?.aRate || "",
@@ -4366,6 +4386,7 @@
         originalGrade: "",
         originalClassMode: "",
         originalClassVersion: "",
+        originalSubject: "",
         originalKey: ""
       };
     }
@@ -4617,7 +4638,7 @@
       }
 
       if (hasDuplicateRenewalTargetKeys(activeRows)) {
-        showToast("续报目标存在重复行，请检查期次、年级、班型、版本");
+        showToast("续报目标存在重复行，请检查期次、年级、班型、版本、科目");
         return;
       }
 
@@ -4713,6 +4734,7 @@
           grade: normalizeIntegerText(record.grade),
           classMode: record.classMode,
           classVersion: record.classVersion,
+          subject: record.subject ? Number(record.subject) : null,
           allRate: ratePayloadValue(record.allRate),
           sRate: ratePayloadValue(record.sRate),
           aRate: ratePayloadValue(record.aRate),
@@ -4724,7 +4746,8 @@
           sortOrder: normalizeSortOrder(record.sortOrder) || 0,
           originalGrade: normalizeIntegerText(record.originalGrade),
           originalClassMode: record.originalClassMode,
-          originalClassVersion: record.originalClassVersion
+          originalClassVersion: record.originalClassVersion,
+          originalSubject: record.originalSubject
         };
 
         if (record.delFlag) {
