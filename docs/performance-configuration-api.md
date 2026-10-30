@@ -422,7 +422,7 @@ Excel 首行表头可使用：
 续报目标支持可选字段 `subject`（科目），前端单选数学或物理，数据库编码为 `3`（数学）、`5`（物理）。Excel/CSV 导入表头支持“科目”或 `subject`，支持科目名称或编码，非法科目会提示错误；缺省为空，保存到 `bi.bi_renewal_target_rate.subject`。科目参与目标行匹配，修改时通过 `originalSubject` 定位原记录。已有表缺少该字段时，先执行 `db/renewal_target_rate.sql` 中的 `ADD COLUMN IF NOT EXISTS subject bigint`。
 
 
-续报目标最后一列为“排名分组”。分组存储在 `bi.dim_renewal_rank_group`（`id bigint`、`group_name text`），页面从列表接口的 `rankGroups` 读取；没有前端固定分组或浏览器持久化。支持“新建排名分组”，分组不区分囤课/待续，可跨期次选择。
+续报目标最前为拖拽手柄，之后依次为科目、排名分组、年级、班型、版本及目标率，操作列位于最后。分组存储在 `bi.dim_renewal_rank_group`（`id bigint`、`group_name text`），页面从列表接口的 `rankGroups` 读取；没有前端固定分组或浏览器持久化。支持“新建排名分组”，分组不区分囤课/待续，可跨期次选择。
 
 目标表 `renewal_rank_group_id bigint` 保存分组ID；API 使用 `renewalRankGroupId`，以字符串传输ID以避免大整数精度丢失，空值为 `null`。保存时验证分组存在；排名分组不参与目标行自然键，修改分组更新原行。
 
