@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS bi.bi_renewal_target_rate (
   class_mode text,
   class_version text,
   subject bigint,
+  renewal_rank_group_id bigint,
   all_rate numeric(38, 10),
   s_rate numeric(38, 10),
   a_rate numeric(38, 10),
@@ -16,6 +17,9 @@ CREATE TABLE IF NOT EXISTS bi.bi_renewal_target_rate (
   sort_order integer DEFAULT 0,
   del_flag smallint NOT NULL DEFAULT 0
 );
+
+ALTER TABLE bi.bi_renewal_target_rate
+  ADD COLUMN IF NOT EXISTS renewal_rank_group_id bigint;
 
 ALTER TABLE bi.bi_renewal_target_rate
   ADD COLUMN IF NOT EXISTS subject bigint;
@@ -47,6 +51,7 @@ ALTER TABLE bi.bi_renewal_target_rate
 
 COMMENT ON TABLE bi.bi_renewal_target_rate IS '续报目标率配置表';
 COMMENT ON COLUMN bi.bi_renewal_target_rate.renewal_period_id IS '续报期 ID';
+COMMENT ON COLUMN bi.bi_renewal_target_rate.renewal_rank_group_id IS '排名分组ID，关联 bi.dim_renewal_rank_group.id';
 COMMENT ON COLUMN bi.bi_renewal_target_rate.subject IS '科目：3 数学，5 物理';
 COMMENT ON COLUMN bi.bi_renewal_target_rate.grade IS '年级';
 COMMENT ON COLUMN bi.bi_renewal_target_rate.class_mode IS '班型';

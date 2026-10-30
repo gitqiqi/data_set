@@ -698,9 +698,9 @@
     }
 
     .renewal-target-table {
-      min-width: 1264px;
+      min-width: 1494px;
       display: grid;
-      grid-template-columns: 120px 154px 170px 180px repeat(6, minmax(86px, 1fr)) 72px;
+      grid-template-columns: 120px 154px 170px 180px repeat(6, minmax(86px, 1fr)) 72px 230px;
     }
 
     .table-head,
@@ -1745,6 +1745,7 @@
                   <span id="addRenewalPeriodPopover" class="month-popover add-renewal-period-popover" role="listbox" hidden></span>
                 </span>
                 <span id="importRenewalTargetControl" class="import-renewal-target-control" hidden>
+                  <button id="createRankGroupBtn" class="button" type="button">新建排名分组</button>
                   <button id="importRenewalTargetBtn" class="button" type="button">导入Excel</button>
                   <button id="importRenewalTargetHelpBtn" class="button import-help-button" type="button" aria-label="导入字段说明" aria-expanded="false" title="导入字段说明">?</button>
                   <span id="importRenewalTargetHelpPopover" class="import-help-popover" hidden>
@@ -1752,10 +1753,10 @@
                     <span class="import-help-list">
                       <span><b>必填：</b>年级、班型。</span>
                       <span><b>建议填写：</b>续报期ID 或 期次ID。不填时使用当前筛选期次。</span>
-                      <span><b>可选：</b>科目（数学/物理，或编码3/5）、版本、总目标率、S档、A档、B档、C档、D档、排序。</span>
+                      <span><b>可选：</b>排名分组（已建分组名称或ID）、科目（数学/物理，或编码3/5）、版本、总目标率、S档、A档、B档、C档、D档、排序。</span>
                       <span><b>文件：</b>支持 .xlsx / .csv；.xls 先另存为 .xlsx。</span>
                     </span>
-                    <span class="import-help-example">表头示例：续报期ID、年级、班型、版本、科目、总目标率、S档、A档、B档、C档、D档、排序</span>
+                    <span class="import-help-example">表头示例：续报期ID、年级、班型、版本、科目、总目标率、S档、A档、B档、C档、D档、排序、排名分组</span>
                   </span>
                   <input id="importRenewalTargetInput" type="file" accept=".xlsx,.csv" hidden>
                 </span>
@@ -1772,6 +1773,18 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="renewalTargetPopover" class="renewal-tag-popover renewal-tag-popover-floating" hidden></div>
+
+  <dialog id="rankGroupDialog" style="border:1px solid var(--line);border-radius:12px;padding:24px;width:360px;max-width:90vw">
+    <form id="rankGroupForm">
+      <label for="rankGroupName" style="display:block;margin-bottom:12px;font-weight:600">新建排名分组</label>
+      <input id="rankGroupName" class="input" placeholder="输入分组名称" required maxlength="128" autocomplete="off">
+      <p style="font-size:13px;color:var(--muted)">分组可以在不同期次中选择使用。</p>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+        <button id="cancelRankGroupBtn" class="button" type="button">取消</button>
+        <button id="confirmRankGroupBtn" class="button primary" type="submit">新建</button>
+      </div>
+    </form>
+  </dialog>
 
   <script>
     const apiBase = window.PERFORMANCE_CONFIGURATION_API_BASE || "/data_set/performance/configuration";
@@ -1794,6 +1807,7 @@
       { key: "cRate", label: "C档" },
       { key: "dRate", label: "D档" }
     ];
+    let renewalRankGroupOptions = [];
     const defaultRenewalTargetClassModeOptions = ["创新", "笃学", "睿学"];
     const excludedRenewalTargetClassModeOptions = new Set(["合计"]);
     const excludedRenewalTargetClassVersionOptions = new Set(["合计", "创新", "创新版本"]);
@@ -1849,6 +1863,7 @@
     let isLoadingPermission = true;
     let isImportingRenewalTargets = false;
     let isSavingConfiguration = false;
+    let isCreatingRankGroup = false;
     const rangeDrafts = new Map();
     let remoteAdminPermissionRows = [];
     let draggingRecordId = "";
@@ -2060,6 +2075,7 @@
         classMode: String(record.classMode ?? record.class_mode ?? "").trim(),
         classVersion: String(record.classVersion ?? record.class_version ?? "").trim(),
         subject: normalizeTargetSubject(record.subject),
+        renewalRankGroupId: String(record.renewalRankGroupId ?? record.renewal_rank_group_id ?? "").trim(),
         allRate: normalizeRateValue(record.allRate ?? record.all_rate),
         sRate: normalizeRateValue(record.sRate ?? record.s_rate),
         aRate: normalizeRateValue(record.aRate ?? record.a_rate),
@@ -2130,6 +2146,7 @@
         String(record?.classMode ?? "").trim(),
         String(record?.classVersion ?? "").trim(),
         String(record?.subject ?? "").trim(),
+        String(record?.renewalRankGroupId ?? "").trim(),
         normalizeRateValue(record?.allRate),
         normalizeRateValue(record?.sRate),
         normalizeRateValue(record?.aRate),
@@ -2375,6 +2392,9 @@
           : (activeRenewalPeriodId ? [activeRenewalPeriodId] : []);
         const data = await postJson(configurationListUrl, { moduleKey: renewalTargetModuleKey });
         const state = renewalTargetStateFromResponse(data, preferredPeriodGroupKeys);
+        renewalRankGroupOptions = (unwrapData(data)?.rankGroups || []).map((group) => ({
+          id: String(group.id), groupName: String(group.groupName)
+        }));
         renewalTargetRecords = state.records;
         renewalTargetPeriodIds = state.renewalPeriodIds;
         renewalTargetPeriodOptions = state.renewalPeriodOptions;
@@ -3190,6 +3210,7 @@
           <div>版本</div>
           ${renewalTargetRateFields.map((field) => `<div>${escapeHtml(field.label)}</div>`).join("")}
           <div>操作</div>
+          <div>排名分组</div>
         </div>
       `;
 
@@ -3228,6 +3249,13 @@
           <div class="cell">
             <button class="row-action-button" type="button"${readonly ? " hidden disabled" : ""}>删除</button>
           </div>
+          <div class="cell">
+            <select class="select" data-renewal-field="renewalRankGroupId" aria-label="排名分组"${readonly ? " disabled" : ""}>
+              <option value="">选择排名分组</option>
+              ${record.renewalRankGroupId && !renewalRankGroupOptions.some((group) => group.id === record.renewalRankGroupId) ? `<option value="${escapeAttr(record.renewalRankGroupId)}" selected>分组不存在（${escapeHtml(record.renewalRankGroupId)}）</option>` : ""}
+              ${renewalRankGroupOptions.map((group) => `<option value="${escapeAttr(group.id)}"${record.renewalRankGroupId === group.id ? " selected" : ""}>${escapeHtml(group.groupName)}</option>`).join("")}
+            </select>
+          </div>
         `;
 
         if (!readonly) {
@@ -3261,6 +3289,32 @@
       els.metricWrap.innerHTML = "";
       els.metricWrap.appendChild(table);
       renderRenewalTargetFloatingPopover();
+    }
+
+    async function createRenewalRankGroup(event) {
+      event.preventDefault();
+      if (!requireEditPermission() || isCreatingRankGroup) return;
+      const input = document.getElementById("rankGroupName");
+      const name = input.value.trim();
+      if (!name) return;
+      isCreatingRankGroup = true;
+      const confirmButton = document.getElementById("confirmRankGroupBtn");
+      confirmButton.disabled = true;
+      try {
+        const group = unwrapData(await postJson(`${apiBase}/createRankGroup`, { groupName: name }));
+        const option = { id: String(group.id), groupName: String(group.groupName) };
+        renewalRankGroupOptions = [...renewalRankGroupOptions.filter((item) => item.id !== option.id), option]
+          .sort((a, b) => a.groupName.localeCompare(b.groupName, "zh-Hans-CN"));
+        document.getElementById("rankGroupDialog").close();
+        input.value = "";
+        render();
+        showToast("分组已保存，可在排名分组列选择");
+      } catch (error) {
+        showToast(error.message || "新建分组失败，请重试");
+      } finally {
+        isCreatingRankGroup = false;
+        confirmButton.disabled = false;
+      }
     }
 
     function renewalTargetTagPicker(record, field, placeholder, options, readonly = false) {
@@ -4351,6 +4405,7 @@
       targetRecord.classMode = String(importedRecord.classMode || "").trim();
       targetRecord.classVersion = String(importedRecord.classVersion || "").trim();
       targetRecord.subject = normalizeTargetSubject(importedRecord.subject);
+      targetRecord.renewalRankGroupId = String(importedRecord.renewalRankGroupId ?? importedRecord.renewal_rank_group_id ?? "").trim();
       renewalTargetRateFields.forEach((field) => {
         targetRecord[field.key] = normalizeRateValue(importedRecord[field.key]);
       });
@@ -4372,6 +4427,7 @@
         classMode: source?.classMode || "",
         classVersion: source?.classVersion || "",
         subject: source?.subject || "",
+        renewalRankGroupId: source?.renewalRankGroupId || "",
         allRate: source?.allRate || "",
         sRate: source?.sRate || "",
         aRate: source?.aRate || "",
@@ -4735,6 +4791,7 @@
           classMode: record.classMode,
           classVersion: record.classVersion,
           subject: record.subject ? Number(record.subject) : null,
+          renewalRankGroupId: record.renewalRankGroupId || null,
           allRate: ratePayloadValue(record.allRate),
           sRate: ratePayloadValue(record.sRate),
           aRate: ratePayloadValue(record.aRate),
@@ -4960,6 +5017,11 @@
       toastTimer = setTimeout(() => els.toast.classList.remove("show"), duration);
     }
 
+    document.getElementById("createRankGroupBtn").addEventListener("click", () => {
+      if (requireEditPermission()) document.getElementById("rankGroupDialog").showModal();
+    });
+    document.getElementById("cancelRankGroupBtn").addEventListener("click", () => document.getElementById("rankGroupDialog").close());
+    document.getElementById("rankGroupForm").addEventListener("submit", createRenewalRankGroup);
     els.addMonthBtn.addEventListener("click", (event) => {
       event.stopPropagation();
       addMonth();

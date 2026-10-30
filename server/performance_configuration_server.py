@@ -51,6 +51,11 @@ XLSX_NS = {"main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 OFFICE_REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 PACKAGE_REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 RENEWAL_TARGET_IMPORT_HEADERS = {
+    "排名分组": "renewalRankGroupId",
+    "renewalrankgroupid": "renewalRankGroupId",
+    "renewalrankgroup": "renewalRankGroupId",
+    "renewal_rank_group": "renewalRankGroupId",
+    "renewal_rank_group_id": "renewalRankGroupId",
     "subject": "subject",
     "科目": "subject",
     "renewalperiodid": "renewalPeriodIds",
@@ -230,6 +235,16 @@ def normalize_target_subject(value: Any) -> str:
     if subject is None:
         raise ValueError("科目仅支持数学（3）或物理（5）")
     return subject
+
+
+def resolve_rank_group(value: Any, options: List[Dict[str, Any]]) -> Optional[int]:
+    text = clean_import_cell(value)
+    if not text:
+        return None
+    for option in options:
+        if text in {str(option["id"]), str(option["groupName"])}:
+            return int(option["id"])
+    raise ValueError(f"排名分组“{text}”不存在，请先新建分组")
 
 
 def normalize_import_header(value: Any) -> str:
@@ -444,6 +459,7 @@ def parse_renewal_target_import_rows(
     table_rows: List[List[str]],
     fallback_period_ids: List[int],
     period_options: List[Dict[str, Any]],
+    rank_groups: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     header_candidates = [
         (index, [import_header_key(header) for header in row])
@@ -494,6 +510,7 @@ def parse_renewal_target_import_rows(
 
         try:
             subject = normalize_target_subject(raw.get("subject"))
+            rank_group_id = resolve_rank_group(raw.get("renewalRankGroupId"), rank_groups or [])
         except ValueError as exc:
             errors.append(f"第 {row_number} 行{exc}")
             continue
@@ -508,6 +525,7 @@ def parse_renewal_target_import_rows(
                 "classMode": class_mode,
                 "classVersion": clean_import_cell(raw.get("classVersion")),
                 "subject": subject,
+                "renewalRankGroupId": rank_group_id,
                 "allRate": import_rate_text(raw.get("allRate")),
                 "sRate": import_rate_text(raw.get("sRate")),
                 "aRate": import_rate_text(raw.get("aRate")),
@@ -798,6 +816,7 @@ class PerformanceConfigurationRepository:
             env("HOLO_RENEWAL_TARGET_TABLE", "bi_renewal_target_rate"),
             "bi_renewal_target_rate",
         )
+        self.qualified_rank_group_table = f"{self.schema}.dim_renewal_rank_group"
         self.table = self.performance_table
         self.qualified_performance_table = f"{self.schema}.{self.performance_table}"
         self.qualified_renewal_target_table = f"{self.schema}.{self.renewal_target_table}"
@@ -974,6 +993,7 @@ class PerformanceConfigurationRepository:
           {period_group_key_select} AS renewal_period_group_key,
           target.grade,
           COALESCE(CAST(target.subject AS text), '') AS subject,
+          CAST(target.renewal_rank_group_id AS text) AS renewal_rank_group_id,
           COALESCE(target.class_mode, '') AS class_mode,
           COALESCE(target.class_version, '') AS class_version,
           target.all_rate,
@@ -1011,9 +1031,41 @@ class PerformanceConfigurationRepository:
             "renewalPeriodIds": period_ids,
             "renewalPeriodOptions": period_options,
             "availableRenewalPeriodOptions": available_period_options,
+            "rankGroups": self.rank_group_options(),
             "activeRenewalPeriodId": renewal_period_id
             or (period_ids[0] if period_ids else (available_period_options[0]["id"] if available_period_options else "")),
         }
+
+    def rank_group_options(self) -> List[Dict[str, Any]]:
+        rows = self.fetch_all(
+            f"SELECT id, group_name FROM {self.qualified_rank_group_table} ORDER BY group_name, id", []
+        )
+        return [{"id": str(row["id"]), "groupName": row["group_name"]} for row in rows]
+
+    def create_rank_group(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        name = clean_import_cell(payload.get("groupName"))
+        if not name or len(name) > 128:
+            raise ValueError("分组名称不能为空，且不能超过128个字符")
+        existing = self.fetch_all(
+            f"SELECT id FROM {self.qualified_rank_group_table} WHERE group_name = %s ORDER BY id LIMIT 1", [name]
+        )
+        if existing:
+            return {"id": str(existing[0]["id"]), "groupName": name}
+        # Stable IDs make repeated and concurrent creation of the same name idempotent.
+        # 52 bits remain exactly representable in JavaScript.
+        group_id = int(hashlib.sha256(name.encode("utf-8")).hexdigest()[:13], 16)
+        with self.with_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    f"INSERT INTO {self.qualified_rank_group_table} (id, group_name) VALUES (%s, %s) "
+                    "ON CONFLICT (id) DO NOTHING", (group_id, name),
+                )
+                cursor.execute(f"SELECT group_name FROM {self.qualified_rank_group_table} WHERE id = %s", (group_id,))
+                stored = cursor.fetchone()
+                if not stored or stored[0] != name:
+                    raise ValueError("分组ID冲突，请使用其他分组名称")
+            conn.commit()
+        return {"id": str(group_id), "groupName": name}
 
     def renewal_period_options(self, only_configured: bool = False) -> List[Dict[str, Any]]:
         if not only_configured:
@@ -1354,6 +1406,12 @@ class PerformanceConfigurationRepository:
         if not normalized_rows:
             return {"saved": 0, "deleted": 0}
 
+        valid_rank_group_ids = {int(group["id"]) for group in self.rank_group_options()}
+        for row in normalized_rows:
+            group_id = row["values"][-1]
+            if not row["deleted"] and group_id is not None and group_id not in valid_rank_group_ids:
+                raise ValueError("排名分组不存在，请刷新页面后重新选择")
+
         has_sort_order = self.has_sort_order_column(self.renewal_target_table)
         has_period_group_key = self.has_period_group_key_column(self.renewal_target_table)
         sort_order_set = ", sort_order = %s" if has_sort_order else ""
@@ -1380,7 +1438,8 @@ class PerformanceConfigurationRepository:
           a_rate = %s,
           b_rate = %s,
           c_rate = %s,
-          d_rate = %s
+          d_rate = %s,
+          renewal_rank_group_id = %s
           {period_group_key_set}
           {sort_order_set}
           {del_flag_set}
@@ -1402,12 +1461,13 @@ class PerformanceConfigurationRepository:
           a_rate,
           b_rate,
           c_rate,
-          d_rate
+          d_rate,
+          renewal_rank_group_id
           {period_group_key_column}
           {sort_order_column}
           {del_flag_column}
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s{period_group_key_value}{sort_order_value}{del_flag_value})
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s{period_group_key_value}{sort_order_value}{del_flag_value})
         """
         delete_sql = None
         if has_del_flag:
@@ -1599,6 +1659,11 @@ class PerformanceConfigurationRepository:
             original_period_id or renewal_period_id,
         )
 
+        raw_rank_group = first_value(row, "renewalRankGroupId", "renewal_rank_group_id", default=None)
+        rank_group_id = as_int(raw_rank_group)
+        if raw_rank_group not in (None, "") and (rank_group_id is None or rank_group_id < 0):
+            raise ValueError("renewalRankGroupId 必须是分组ID")
+
         values = (
             renewal_period_id,
             grade,
@@ -1611,6 +1676,7 @@ class PerformanceConfigurationRepository:
             parse_decimal(first_value(row, "bRate", "b_rate", default=None)),
             parse_decimal(first_value(row, "cRate", "c_rate", default=None)),
             parse_decimal(first_value(row, "dRate", "d_rate", default=None)),
+            rank_group_id,
         )
         sort_order = as_int(first_value(row, "sortOrder", "sort_order", default=None)) or 0
 
@@ -1664,6 +1730,7 @@ class PerformanceConfigurationHandler(BaseHTTPRequestHandler):
             "/data_set/performance/configuration/login": self.handle_login,
             "/data_set/performance/configuration/logout": self.handle_logout,
             "/data_set/performance/configuration/list": self.handle_list,
+            "/data_set/performance/configuration/createRankGroup": self.handle_create_rank_group,
             "/data_set/performance/configuration/periodOptions": self.handle_period_options,
             "/data_set/performance/configuration/adminUserInfo": self.handle_admin_user_info,
             "/data_set/performance/configuration/batchUpsert": self.handle_batch_upsert,
@@ -1686,6 +1753,7 @@ class PerformanceConfigurationHandler(BaseHTTPRequestHandler):
                     self.send_error_json(HTTPStatus.UNAUTHORIZED, "请先登录")
                     return
                 if parsed.path in {
+                    "/data_set/performance/configuration/createRankGroup",
                     "/data_set/performance/configuration/batchUpsert",
                     "/data_set/performance/configuration/delete",
                     "/data_set/performance/configuration/importRenewalTargets",
@@ -1734,6 +1802,9 @@ class PerformanceConfigurationHandler(BaseHTTPRequestHandler):
         body = payload if isinstance(payload, dict) else {}
         self.send_json(self.repository.list_configurations(body))
 
+    def handle_create_rank_group(self, payload: Dict[str, Any]) -> None:
+        self.send_json(self.repository.create_rank_group(payload if isinstance(payload, dict) else {}))
+
     def handle_period_options(self, payload: Dict[str, Any]) -> None:
         self.send_json(self.repository.period_options())
 
@@ -1766,7 +1837,7 @@ class PerformanceConfigurationHandler(BaseHTTPRequestHandler):
         fallback_period_ids = parse_import_period_ids(fields.get("fallbackPeriodIds"))
         table_rows = import_table_from_upload(upload.get("filename") or "", upload.get("content") or b"")
         period_options = self.repository.renewal_period_options()
-        self.send_json(parse_renewal_target_import_rows(table_rows, fallback_period_ids, period_options))
+        self.send_json(parse_renewal_target_import_rows(table_rows, fallback_period_ids, period_options, self.repository.rank_group_options()))
 
     def operator_id(self) -> Optional[int]:
         user = self.current_session_user()
