@@ -975,6 +975,28 @@
       background-repeat: no-repeat;
     }
 
+    .select.renewal-plain-select {
+      border: 0;
+      border-radius: 0;
+      background-color: transparent;
+      box-shadow: none;
+      padding-left: 0;
+      font-size: 13px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .select.renewal-plain-select:focus-visible {
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+
+    .select.renewal-plain-select:disabled {
+      cursor: default;
+      background-image: none;
+      opacity: 1;
+    }
+
     .ghost-value {
       color: #a1aab4;
       font-size: 13px;
@@ -3221,14 +3243,14 @@
             </button>
           </div>
           <div class="cell">
-            <select class="select" data-renewal-field="subject" aria-label="科目"${readonly ? " disabled" : ""}>
+            <select class="select renewal-plain-select" data-renewal-field="subject" aria-label="科目"${readonly ? " disabled" : ""}>
               <option value=""${!record.subject ? " selected" : ""}>选择科目</option>
               <option value="3"${record.subject === "3" ? " selected" : ""}>数学</option>
               <option value="5"${record.subject === "5" ? " selected" : ""}>物理</option>
             </select>
           </div>
           <div class="cell">
-            <select class="select" data-renewal-field="renewalRankGroupId" aria-label="排名分组"${readonly ? " disabled" : ""}>
+            <select class="select renewal-plain-select" data-renewal-field="renewalRankGroupId" aria-label="排名分组"${readonly ? " disabled" : ""}>
               <option value="">选择排名分组</option>
               ${record.renewalRankGroupId && !renewalRankGroupOptions.some((group) => group.id === record.renewalRankGroupId) ? `<option value="${escapeAttr(record.renewalRankGroupId)}" selected>分组不存在（${escapeHtml(record.renewalRankGroupId)}）</option>` : ""}
               ${renewalRankGroupOptions.map((group) => `<option value="${escapeAttr(group.id)}"${record.renewalRankGroupId === group.id ? " selected" : ""}>${escapeHtml(group.groupName)}</option>`).join("")}
