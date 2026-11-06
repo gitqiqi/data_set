@@ -686,7 +686,6 @@ def normalize_period_list(value: Any) -> List[str]:
             text = part.strip()
             if not text:
                 continue
-            text = re.sub(r"^(\d{2})(?=[\u4e00-\u9fa5])", r"20\1", text)
             values.append(text)
     return list(dict.fromkeys(values))
 
@@ -936,6 +935,7 @@ class PerformanceConfigurationRepository:
           period1,
           period2,
           periods,
+          xzk_period_id,
           config_type,
           {sort_order_select},
           del_flag
@@ -945,6 +945,8 @@ class PerformanceConfigurationRepository:
         """
 
         rows = self.fetch_all(sql, params)
+        for row in rows:
+            row["xzk_period_id"] = [str(value) for value in (row.get("xzk_period_id") or [])]
         months = sorted({row["config_month"] for row in rows if row.get("config_month")}, reverse=True)
         return {
             "records": rows,
@@ -1159,7 +1161,15 @@ class PerformanceConfigurationRepository:
         )
         return options
 
-    def period_options(self) -> List[Dict[str, str]]:
+    def period_options(self, module: str = "") -> List[Dict[str, str]]:
+        if module == "小灶课":
+            rows = self.fetch_all("""
+                SELECT id, period_name
+                FROM book.xzk_period
+                WHERE del_flag = 0 AND trim(period_name) <> ''
+                ORDER BY id DESC
+            """, [])
+            return [{"id": str(row["id"]), "periodName": row["period_name"]} for row in rows]
         sql = """
         SELECT DISTINCT concat(class_year, class_season) AS period_name
         FROM bi.dim_org_box_class_hf b
@@ -1303,7 +1313,7 @@ class PerformanceConfigurationRepository:
         if has_sort_order:
             template = (
                 "(%s, %s, COALESCE(%s, now()), now(), %s, %s, %s, %s, %s, "
-                "COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, ARRAY[]::text[]), "
+                "COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, ARRAY[]::text[]), COALESCE(%s::integer[], ARRAY[]::integer[]), "
                 "COALESCE(%s, ''), COALESCE(%s, 0), COALESCE(%s, 0))"
             )
             sql = f"""
@@ -1320,6 +1330,7 @@ class PerformanceConfigurationRepository:
               period1,
               period2,
               periods,
+              xzk_period_id,
               config_type,
               sort_order,
               del_flag
@@ -1335,6 +1346,7 @@ class PerformanceConfigurationRepository:
               period1 = EXCLUDED.period1,
               period2 = EXCLUDED.period2,
               periods = EXCLUDED.periods,
+              xzk_period_id = EXCLUDED.xzk_period_id,
               config_type = EXCLUDED.config_type,
               sort_order = EXCLUDED.sort_order,
               del_flag = EXCLUDED.del_flag
@@ -1343,7 +1355,7 @@ class PerformanceConfigurationRepository:
             normalized_rows = [row[:-2] + (row[-1],) for row in normalized_rows]
             template = (
                 "(%s, %s, COALESCE(%s, now()), now(), %s, %s, %s, %s, %s, "
-                "COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, ARRAY[]::text[]), "
+                "COALESCE(%s, ''), COALESCE(%s, ''), COALESCE(%s, ARRAY[]::text[]), COALESCE(%s::integer[], ARRAY[]::integer[]), "
                 "COALESCE(%s, ''), COALESCE(%s, 0))"
             )
             sql = f"""
@@ -1360,6 +1372,7 @@ class PerformanceConfigurationRepository:
               period1,
               period2,
               periods,
+              xzk_period_id,
               config_type,
               del_flag
             )
@@ -1374,6 +1387,7 @@ class PerformanceConfigurationRepository:
               period1 = EXCLUDED.period1,
               period2 = EXCLUDED.period2,
               periods = EXCLUDED.periods,
+              xzk_period_id = EXCLUDED.xzk_period_id,
               config_type = EXCLUDED.config_type,
               del_flag = EXCLUDED.del_flag
             """
@@ -1594,6 +1608,29 @@ class PerformanceConfigurationRepository:
         update_by = as_int(first_value(row, "updateBy", "update_by", default=None)) or operator_id
         create_date = parse_datetime(first_value(row, "createDate", "create_date", default=None))
         period1, period2, periods = normalize_period_fields(row, module)
+        xzk_period_ids = []
+        if module == "小灶课":
+            raw_ids = first_value(row, "xzkPeriodId", "xzk_period_id", default=[])
+            if raw_ids is None:
+                raw_ids = []
+            if not isinstance(raw_ids, list):
+                raise ValueError("xzkPeriodId 必须是 ID 数组")
+            for value in raw_ids:
+                if not re.fullmatch(r"[1-9][0-9]*", str(value)):
+                    raise ValueError("小灶课期别 ID 无效")
+                period_id = int(value)
+                if period_id > 2147483647:
+                    raise ValueError("小灶课期别 ID 超出范围")
+                if period_id not in xzk_period_ids:
+                    xzk_period_ids.append(period_id)
+            if xzk_period_ids:
+                options = self.fetch_all(
+                    "SELECT id, period_name FROM book.xzk_period WHERE del_flag = 0 AND id = ANY(%s::bigint[])",
+                    [xzk_period_ids],
+                )
+                names = {int(option["id"]): option["period_name"] for option in options}
+                if any(period_id not in names for period_id in xzk_period_ids):
+                    raise ValueError("小灶课期别不存在或已删除，请刷新后重选")
         config_type = str(first_value(row, "configType", "config_type", default="")).strip()
         if module not in CONFIG_TYPE_MODULES:
             config_type = ""
@@ -1612,6 +1649,7 @@ class PerformanceConfigurationRepository:
             period1,
             period2,
             periods,
+            [str(value) for value in xzk_period_ids],
             config_type,
             as_int(first_value(row, "sortOrder", "sort_order", default=None)),
             as_smallint(first_value(row, "delFlag", "del_flag", default=0), 0),
@@ -1806,7 +1844,7 @@ class PerformanceConfigurationHandler(BaseHTTPRequestHandler):
         self.send_json(self.repository.create_rank_group(payload if isinstance(payload, dict) else {}))
 
     def handle_period_options(self, payload: Dict[str, Any]) -> None:
-        self.send_json(self.repository.period_options())
+        self.send_json(self.repository.period_options(str(payload.get("module", "")).strip()))
 
     def handle_admin_user_info(self, payload: Dict[str, Any]) -> None:
         body = payload if isinstance(payload, dict) else {}

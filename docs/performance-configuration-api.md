@@ -61,6 +61,7 @@ book.db_renewal_period
 | content | content | 指标口径说明，可为空 |
 | timeStart | time_start | 生效开始日期，可为空 |
 | timeEnd | time_end | 生效结束日期，可为空 |
+| xzkPeriodId | xzk_period_id | 小灶课期别 ID 数组（数据库为 integer[]，接口使用字符串 ID），对应 book.xzk_period.id；其他指标为空数组。类型列按 ID 显示对应 period_name，独立于期别列 periods/period1 保存。 |
 | period1 | period1 | 首个期别；普通指标为多选期别中的首期，带生数类指标为第一个期别 |
 | period2 | period2 | 期别 2；仅带生数类指标使用，其他指标传空字符串 |
 | periods | periods | 页面选择的期别数组；普通指标支持多选，带生数类指标由 `period1/period2` 汇总，例如 `["2026秋", "2026暑"]` |
