@@ -1162,7 +1162,7 @@ class PerformanceConfigurationRepository:
         return options
 
     def period_options(self, module: str = "") -> List[Dict[str, str]]:
-        if module == "小灶课":
+        if module in {"小灶课", "刷题班小灶课"}:
             rows = self.fetch_all("""
                 SELECT id, period_name
                 FROM book.xzk_period
@@ -1609,7 +1609,7 @@ class PerformanceConfigurationRepository:
         create_date = parse_datetime(first_value(row, "createDate", "create_date", default=None))
         period1, period2, periods = normalize_period_fields(row, module)
         xzk_period_ids = []
-        if module == "小灶课":
+        if module in {"小灶课", "刷题班小灶课"}:
             raw_ids = first_value(row, "xzkPeriodId", "xzk_period_id", default=[])
             if raw_ids is None:
                 raw_ids = []

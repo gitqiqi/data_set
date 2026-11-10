@@ -1867,6 +1867,7 @@
       "刷题班课中退",
       "刷题班试听退",
       "小灶课",
+      "刷题班小灶课",
       "上课数据"
     ];
 
@@ -3620,7 +3621,7 @@
     }
 
     function typeControl(record, readonly = false) {
-      if (record.module === "小灶课") return periodSlotControl(record, "xzkPeriodId", "", readonly);
+      if (["小灶课", "刷题班小灶课"].includes(record.module)) return periodSlotControl(record, "xzkPeriodId", "", readonly);
       if (!isConfigTypeModule(record.module)) {
         return '<span class="ghost-value">无</span>';
       }
@@ -3728,7 +3729,7 @@
     }
 
     function periodOptions(record, field = "period1") {
-      if (record?.module === "小灶课" && field === "xzkPeriodId") {
+      if (["小灶课", "刷题班小灶课"].includes(record?.module) && field === "xzkPeriodId") {
         return remoteXzkPeriodOptions
           .filter(option => !String(option.periodName || "").includes("测试"))
           .map(option => option.id);
@@ -3791,7 +3792,7 @@
     }
 
     function formatPeriodLabel(value, record, field = "period1") {
-      if (record?.module === "小灶课" && field === "xzkPeriodId") return remoteXzkPeriodOptions.find(option => option.id === String(value))?.periodName || String(value);
+      if (["小灶课", "刷题班小灶课"].includes(record?.module) && field === "xzkPeriodId") return remoteXzkPeriodOptions.find(option => option.id === String(value))?.periodName || String(value);
       return normalizePeriodValue(value);
     }
 
@@ -4239,7 +4240,7 @@
       if (!record) return;
       if (!requireEditablePerformanceMonth(record.configMonth)) return;
       const normalized = normalizePeriodValue(period);
-      if (record.module === "小灶课" && field === "xzkPeriodId") {
+      if (["小灶课", "刷题班小灶课"].includes(record.module) && field === "xzkPeriodId") {
         const selected = periodFieldValues(record, field);
         record.xzkPeriodId = selected.includes(normalized) ? selected.filter(id => id !== normalized) : [...selected, normalized];
       } else if (isDualPeriodRecord(record)) {
@@ -4326,7 +4327,7 @@
         timeEnd: shiftDate(record.timeEnd, monthDelta) || endOfMonth(targetMonth),
         period1: periodFieldValues(record, "period1")[0] || "",
         period2: isDualPeriodRecord(record) ? (periodFieldValues(record, "period2")[0] || "") : "",
-        xzkPeriodId: record.module === "小灶课" ? periodFieldValues(record, "xzkPeriodId") : [],
+        xzkPeriodId: ["小灶课", "刷题班小灶课"].includes(record.module) ? periodFieldValues(record, "xzkPeriodId") : [],
         periods: periodValues(record),
         configType: normalizeConfigType(record.configType, record.module),
         sortOrder: index + 1,
@@ -4614,7 +4615,7 @@
         timeEnd: shiftDate(template?.timeEnd, monthDelta) || endOfMonth(configMonth),
         period1: template ? (periodFieldValues(template, "period1")[0] || "") : "",
         period2: template && isDualPeriodModule(module) ? (periodFieldValues(template, "period2")[0] || "") : "",
-        xzkPeriodId: template?.module === "小灶课" ? [...periodFieldValues(template, "xzkPeriodId")] : [],
+        xzkPeriodId: ["小灶课", "刷题班小灶课"].includes(template?.module) ? [...periodFieldValues(template, "xzkPeriodId")] : [],
         periods: template ? periodValues(template) : [],
         configType: isConfigTypeModule(module) ? normalizeConfigType(template?.configType, module) : "",
         sortOrder: 1,
@@ -4839,7 +4840,7 @@
         timeEnd: record.timeEnd,
         period1: periodFieldValues(record, "period1")[0] || "",
         period2: isDualPeriodRecord(record) ? (periodFieldValues(record, "period2")[0] || "") : "",
-        xzkPeriodId: record.module === "小灶课" ? periodFieldValues(record, "xzkPeriodId") : [],
+        xzkPeriodId: ["小灶课", "刷题班小灶课"].includes(record.module) ? periodFieldValues(record, "xzkPeriodId") : [],
         periods: periodValues(record),
         configType: normalizeConfigType(record.configType, record.module),
         sortOrder: normalizeSortOrder(record.sortOrder) || 0,

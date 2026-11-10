@@ -22,6 +22,15 @@ class XzkPeriodTests(unittest.TestCase):
         self.assertEqual(row[8], '2026秋')
         self.assertEqual(row[11], ['2', '2147483647'])
 
+    def test_exercise_xzk_keeps_periods_and_ids(self):
+        row = self.repo.normalize_configuration_row({
+            'configMonth': '2099-11', 'module': '刷题班小灶课',
+            'periods': ['2026秋'], 'xzkPeriodId': ['2'],
+        }, None)
+        self.assertEqual(row[10], ['2026秋'])
+        self.assertEqual(row[11], ['2'])
+        self.assertEqual(self.repo.period_options('刷题班小灶课')[0]['id'], '2147483647')
+
     def test_invalid_or_deleted_id_is_rejected(self):
         for value in ['abc', '1.2', '2147483648', '99']:
             with self.assertRaises(ValueError):
